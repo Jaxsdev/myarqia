@@ -2,7 +2,7 @@
 
 MyARQIA es una plataforma innovadora de diseño arquitectónico web asistido por Inteligencia Artificial, diseñada específicamente para profesionales en Latinoamérica. Integra un potente motor de IA adaptado al **Reglamento Nacional de Edificaciones (RNE) del Perú** y normativas similares, permitiendo generar y editar planos arquitectónicos de forma rápida y eficiente.
 
-## 🚀 Características Principales
+##  Características Principales
 
 *   **Asistente ArqIA**: Motor de Inteligencia Artificial (impulsado por Claude y Gemini) especializado en arquitectura, capaz de generar plantas completas a partir de descripciones de texto y garantizando el cumplimiento de normas básicas de diseño.
 *   **Editor CAD Web Avanzado**: Herramienta de dibujo 2D interactiva (usando React y Konva) con capacidades tipo CAD:
@@ -13,7 +13,7 @@ MyARQIA es una plataforma innovadora de diseño arquitectónico web asistido por
 *   **Autenticación**: Sistema seguro de login y registro de usuarios mediante Supabase.
 *   **Exportación**: Generación de planos en formato PDF listos para imprimir o compartir.
 
-## 🛠️ Stack Tecnológico
+##  Stack Tecnológico
 
 El proyecto está dividido en dos aplicaciones principales: Frontend y Backend.
 
@@ -92,7 +92,7 @@ cd myarqia
     npm run dev
     ```
 
-## 📂 Estructura del Proyecto
+##  Estructura del Proyecto
 
 ```
 myarqia/
@@ -119,7 +119,7 @@ myarqia/
 └── README.md                 # Documentación del proyecto
 ```
 
-## 📝 Uso
+##  Uso
 
 1.  Levanta tanto el frontend como el backend.
 2.  Accede a la aplicación a través de la URL que provee Vite (generalmente `http://localhost:5173`).
