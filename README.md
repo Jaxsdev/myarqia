@@ -69,8 +69,8 @@ cd myarqia
 
 ### 🔐 Cuenta de Prueba (Equipo)
 Si no deseas crear una cuenta nueva durante el desarrollo, puedes usar la siguiente cuenta de prueba (reemplazar con los datos reales):
-*   **Email:** `[Tu correo de prueba]`
-*   **Contraseña:** `[Tu contraseña]`
+*   **Email:** `prueba@test.com`
+*   **Contraseña:** `123456`
 4.  Inicia el servidor de desarrollo:
     ```bash
     npm run dev
