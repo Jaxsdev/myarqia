@@ -1,10 +1,27 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
+import React from 'react'
+import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
+import './index.css'
+import { supabase } from './lib/supabase'
+import { useAuthStore } from './store/useAuthStore'
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
+// Escuchar cambios de sesión globalmente
+supabase.auth.onAuthStateChange((event, session) => {
+  const { setUsuario, setCargando } = useAuthStore.getState()
+  if (session?.user) {
+    setUsuario({
+      id: session.user.id,
+      email: session.user.email ?? '',
+      nombre: session.user.user_metadata?.full_name,
+    })
+  } else {
+    setUsuario(null)
+  }
+  setCargando(false)
+})
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
     <App />
-  </StrictMode>,
+  </React.StrictMode>,
 )
