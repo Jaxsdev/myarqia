@@ -14,8 +14,6 @@ import CapaCotas from './CapaCotas'
 import { TEMA_CLARO, TEMA_OSCURO } from '../../lib/temas'
 import CapaEtiquetas from './CapaEtiquetas'
 
-
-
 const PX_POR_METRO = 100
 const ZOOM_MIN = 0.2
 const ZOOM_MAX = 8
@@ -31,21 +29,29 @@ export default function CanvasEditor() {
     const arrastrando = useRef(false)
     const ultimaPosicion = useRef({ x: 0, y: 0 })
 
-    const { zoom, setZoom, panX, panY, setPan,
-        setCursor, herramienta, snapActivo, snapSize,
-        cotasVisibles, modoClaro } = useEditorStore()
+    // --- Store: editor ---
+    const {
+        zoom, setZoom, panX, panY, setPan,
+        setCursor, herramienta, setHerramienta,
+        snapActivo, snapSize,
+        orthoActivo, toggleOrtho,
+        cotasVisibles, modoClaro,
+        propiedades,
+    } = useEditorStore()
 
-    const { muros, puertas, ventanas, ambientes,
+    // --- Store: plano ---
+    const {
+        muros, puertas, ventanas, ambientes,
         dibujando, tipoDibujo, puntoInicio, puntoFin,
         idSeleccionado, iniciarDibujo, actualizarDibujo,
         terminarMuro, terminarPuerta, terminarVentana,
         terminarEscalera, terminarColumna, terminarCota,
-        cancelarDibujo, seleccionar, eliminarSeleccionado } = usePlanoStore()
-
-    const { setHerramienta } = useEditorStore()
+        cancelarDibujo, seleccionar, eliminarSeleccionado,
+    } = usePlanoStore()
 
     const tema = modoClaro ? TEMA_CLARO : TEMA_OSCURO
 
+    // --- Resize observer ---
     useEffect(() => {
         const act = () => {
             if (contenedorRef.current)
@@ -59,6 +65,7 @@ export default function CanvasEditor() {
         return () => window.removeEventListener('resize', act)
     }, [])
 
+    // --- Teclado ---
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
             // No interferir con inputs de texto
@@ -74,6 +81,10 @@ export default function CanvasEditor() {
                 case 'c': setHerramienta('column'); break
                 case 'q': setHerramienta('dim'); break
                 case 's': setHerramienta('select'); break
+                case 'f8':
+                    e.preventDefault()
+                    toggleOrtho()
+                    break
                 case 'delete':
                 case 'backspace':
                     eliminarSeleccionado(); break
@@ -81,17 +92,45 @@ export default function CanvasEditor() {
         }
         window.addEventListener('keydown', handler)
         return () => window.removeEventListener('keydown', handler)
-    }, [])
+    }, [cancelarDibujo, setHerramienta, toggleOrtho, eliminarSeleccionado])
+
+    // --- getPunto: convierte pantalla → mundo con snap y ortho ---
     const getPunto = useCallback((e: React.MouseEvent): Punto => {
         const rect = contenedorRef.current!.getBoundingClientRect()
-        const mx = screenToWorld(e.clientX - rect.left, panX, zoom)
-        const my = screenToWorld(e.clientY - rect.top, panY, zoom)
-        return {
-            x: snapActivo ? snapear(mx, snapSize) : mx,
-            y: snapActivo ? snapear(my, snapSize) : my,
-        }
-    }, [panX, panY, zoom, snapActivo, snapSize])
+        let mx = screenToWorld(e.clientX - rect.left, panX, zoom)
+        let my = screenToWorld(e.clientY - rect.top, panY, zoom)
 
+        if (snapActivo) {
+            mx = snapear(mx, snapSize)
+            my = snapear(my, snapSize)
+        }
+
+        // Lógica Ortho: restringe a 0°, 45°, 90°, 135°, 180°, etc.
+        if (orthoActivo && puntoInicio) {
+            const dx = mx - puntoInicio.x
+            const dy = my - puntoInicio.y
+            const dist = Math.sqrt(dx * dx + dy * dy)
+
+            if (dist > 0) {
+                const angle = Math.atan2(dy, dx) * 180 / Math.PI
+                const normalizedAngle = Math.round(angle / 45) * 45
+                const rad = normalizedAngle * Math.PI / 180
+
+                mx = puntoInicio.x + Math.cos(rad) * dist
+                my = puntoInicio.y + Math.sin(rad) * dist
+
+                // Re-snap después de aplicar Ortho
+                if (snapActivo) {
+                    mx = snapear(mx, snapSize)
+                    my = snapear(my, snapSize)
+                }
+            }
+        }
+
+        return { x: mx, y: my }
+    }, [panX, panY, zoom, snapActivo, snapSize, orthoActivo, puntoInicio])
+
+    // --- Wheel: zoom centrado en el cursor ---
     const handleWheel = useCallback((e: React.WheelEvent) => {
         e.preventDefault()
         const factor = e.deltaY > 0 ? 0.92 : 1.08
@@ -101,8 +140,9 @@ export default function CanvasEditor() {
         const my = e.clientY - rect.top
         setZoom(nz)
         setPan(mx - (mx - panX) * (nz / zoom), my - (my - panY) * (nz / zoom))
-    }, [zoom, panX, panY])
+    }, [zoom, panX, panY, setZoom, setPan])
 
+    // --- MouseDown: inicia o termina dibujo ---
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
         if (e.button === 1) {
             arrastrando.current = true
@@ -113,15 +153,15 @@ export default function CanvasEditor() {
             const p = getPunto(e)
             if (herramienta === 'wall') {
                 if (!dibujando) iniciarDibujo(p, 'muro')
-                else terminarMuro(0.25, true)
+                else terminarMuro(propiedades.muro.grosor, true)
             }
             if (herramienta === 'door') {
                 if (!dibujando) iniciarDibujo(p, 'puerta')
-                else terminarPuerta()
+                else terminarPuerta(propiedades.puerta.ancho, propiedades.puerta.sentido, propiedades.puerta.angulo)
             }
             if (herramienta === 'window') {
                 if (!dibujando) iniciarDibujo(p, 'ventana')
-                else terminarVentana()
+                else terminarVentana(propiedades.ventana.ancho, propiedades.ventana.alto, propiedades.ventana.alfeizar)
             }
             if (herramienta === 'stair') {
                 if (!dibujando) iniciarDibujo(p, 'escalera')
@@ -137,15 +177,20 @@ export default function CanvasEditor() {
             }
             if (herramienta === 'select') seleccionar(null)
         }
-    }, [herramienta, dibujando, getPunto])
+    }, [
+        herramienta, dibujando, getPunto,
+        iniciarDibujo, terminarMuro, terminarPuerta, terminarVentana, 
+        terminarEscalera, terminarColumna, terminarCota, seleccionar,
+        propiedades,
+    ])
 
+    // --- ContextMenu: cancela dibujo con clic derecho ---
     const handleContextMenu = useCallback((e: React.MouseEvent) => {
         e.preventDefault()
-        if (dibujando) {
-            cancelarDibujo()
-        }
+        if (dibujando) cancelarDibujo()
     }, [dibujando, cancelarDibujo])
 
+    // --- MouseMove: actualiza cursor y preview ---
     const handleMouseMove = useCallback((e: React.MouseEvent) => {
         const p = getPunto(e)
         setCursor(p.x, p.y)
@@ -156,10 +201,9 @@ export default function CanvasEditor() {
             setPan(panX + dx, panY + dy)
             ultimaPosicion.current = { x: e.clientX, y: e.clientY }
         }
-    }, [panX, panY, zoom, dibujando, getPunto])
+    }, [getPunto, setCursor, dibujando, actualizarDibujo, panX, panY, setPan])
 
-    const cursorStyle =
-        herramienta === 'select' ? 'default' : 'crosshair'
+    const cursorStyle = herramienta === 'select' ? 'default' : 'crosshair'
 
     return (
         <div
@@ -250,7 +294,7 @@ export default function CanvasEditor() {
                     {/* Preview muro */}
                     {dibujando && tipoDibujo === 'muro' && puntoInicio && puntoFin && (
                         <PreviewMuro inicio={puntoInicio} fin={puntoFin}
-                            espesor={0.25} zoom={zoom} panX={panX} panY={panY} />
+                            espesor={propiedades.muro.grosor} zoom={zoom} panX={panX} panY={panY} />
                     )}
 
                     {/* Preview puerta/ventana */}

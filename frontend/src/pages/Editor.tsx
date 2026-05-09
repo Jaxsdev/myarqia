@@ -13,6 +13,7 @@ import PanelChat from '../components/chat/PanelChat'
 import { useExportarPDF } from '../hooks/useExportarPDF'
 import PanelRNE from '../components/editor/PanelRNE'
 import { descargarDXF } from '../lib/exportarDXF'
+import ContextBar from '../components/editor/ContextBar'
 
 export default function Editor() {
     const { id } = useParams<{ id: string }>()
@@ -112,6 +113,7 @@ export default function Editor() {
                     )}
                 </div>
             </nav>
+            <ContextBar />
 
             {/* Área principal */}
             <div className="flex flex-1 overflow-hidden">
