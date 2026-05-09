@@ -165,7 +165,7 @@ export default function PanelChat() {
         const endpoint = modelo === 'gemini' ? '/api/chat-gemini' : '/api/chat'
 
         try {
-            const res = await fetch(`${BACKEND_URL}/api/chat`, {
+            const res = await fetch(`${BACKEND_URL}${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mensajes: historial }),

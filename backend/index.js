@@ -60,6 +60,10 @@ Si el usuario solo hace preguntas sin pedir crear:
 
 Responde SIEMPRE en español. NUNCA texto fuera del JSON.`
 
+function buildSystemPrompt(sistemaExtra) {
+    return sistemaExtra ? `${SYSTEM_PROMPT}\n\nContexto adicional:\n${sistemaExtra}` : SYSTEM_PROMPT
+}
+
 
 // ── Ruta Claude ────────────────────────────────────────────────────────────
 app.post('/api/chat', async (req, res) => {
