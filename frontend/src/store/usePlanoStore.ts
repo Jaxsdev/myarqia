@@ -37,7 +37,7 @@ interface PlanoState {
     // Acciones — Muro
     iniciarDibujo: (p: Punto, tipo: TipoDibujo) => void
     actualizarDibujo: (p: Punto) => void
-    terminarMuro: (espesor?: number) => void
+    terminarMuro: (espesor?: number, continuar?: boolean) => void
     terminarPuerta: () => void
     terminarVentana: () => void
     cancelarDibujo: () => void
@@ -78,7 +78,7 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
     ambientes: [],
     setAmbientes: (ambientes) => set({ ambientes }),
 
-    terminarMuro: (espesor = 0.25) => {
+    terminarMuro: (espesor = 0.25, continuar = false) => {
         const { puntoInicio, puntoFin } = get()
         if (!puntoInicio || !puntoFin) return
         const dx = puntoFin.x - puntoInicio.x
@@ -87,18 +87,23 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
             set({ dibujando: false, puntoInicio: null, puntoFin: null })
             return
         }
+
+        const nuevoMuro: Muro = {
+            id: uid('muro'),
+            x1: puntoInicio.x, y1: puntoInicio.y,
+            x2: puntoFin.x, y2: puntoFin.y,
+            espesor,
+            altura: 2.80,
+            alturaBase: 0,
+            material: 'concreto' as const,
+            layer: 'A-WALL',
+        }
+
         set((s) => ({
-            muros: [...s.muros, {
-                id: uid('muro'),
-                x1: puntoInicio.x, y1: puntoInicio.y,
-                x2: puntoFin.x, y2: puntoFin.y,
-                espesor,
-                altura: 2.80,
-                alturaBase: 0,
-                material: 'concreto' as const,
-                layer: 'A-WALL',
-            }],
-            dibujando: false, puntoInicio: null, puntoFin: null,
+            muros: [...s.muros, nuevoMuro],
+            dibujando: continuar,
+            puntoInicio: continuar ? puntoFin : null,
+            puntoFin: continuar ? puntoFin : null,
         }))
     },
 
@@ -184,5 +189,8 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
         muros: [], puertas: [], ventanas: [],
         dibujando: false, puntoInicio: null, puntoFin: null,
         idSeleccionado: null,
+
+        // Agrega esto para limpiar ambientes también
+        ambientes: [],
     }),
 }))

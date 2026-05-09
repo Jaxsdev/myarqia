@@ -109,7 +109,7 @@ export default function CanvasEditor() {
             const p = getPunto(e)
             if (herramienta === 'muro') {
                 if (!dibujando) iniciarDibujo(p, 'muro')
-                else terminarMuro(0.25)
+                else terminarMuro(0.25, true)
             }
             if (herramienta === 'puerta') {
                 if (!dibujando) iniciarDibujo(p, 'puerta')
@@ -122,6 +122,13 @@ export default function CanvasEditor() {
             if (herramienta === 'seleccionar') seleccionar(null)
         }
     }, [herramienta, dibujando, getPunto])
+
+    const handleContextMenu = useCallback((e: React.MouseEvent) => {
+        e.preventDefault()
+        if (dibujando) {
+            cancelarDibujo()
+        }
+    }, [dibujando, cancelarDibujo])
 
     const handleMouseMove = useCallback((e: React.MouseEvent) => {
         const p = getPunto(e)
@@ -146,6 +153,7 @@ export default function CanvasEditor() {
             onWheel={handleWheel}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
+            onContextMenu={handleContextMenu}
             onMouseUp={(e) => { if (e.button === 1) arrastrando.current = false }}
             onMouseLeave={() => { arrastrando.current = false }}
         >

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { usePlanoStore } from '../../store/usePlanoStore'
 import type { MensajeChat } from '../../types'
+import { useEditorStore } from '../../store/useEditorStore'
 
 let contadorMsg = 1
 const uid = () => `msg-${contadorMsg++}`
@@ -22,30 +23,96 @@ function procesarRespuestaIA(texto: string) {
         const data = JSON.parse(limpio)
 
         if (data.accion === 'generar_planta' && data.planta?.muros) {
+            const plano = data.planta
+
+            // Limpiar el plano actual
             usePlanoStore.getState().limpiarTodo()
 
-            // Agregar muros
-            data.planta.muros.forEach((m: any) => {
+            // ── Agregar MUROS usando el mismo formato que MyARQIA ──
+            plano.muros?.forEach((m: any, i: number) => {
                 usePlanoStore.setState((s) => ({
                     muros: [...s.muros, {
-                        id: `muro-ia-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-                        x1: Number(m.x1), y1: Number(m.y1),
-                        x2: Number(m.x2), y2: Number(m.y2),
+                        id: `muro-ia-${i}-${Date.now()}`,
+                        x1: Number(m.x1),
+                        y1: Number(m.y1),
+                        x2: Number(m.x2),
+                        y2: Number(m.y2),
                         espesor: Number(m.espesor) || 0.25,
                         altura: Number(m.altura) || 2.80,
                         alturaBase: Number(m.alturaBase) || 0,
-                        material: m.material || 'concreto',
+                        material: (m.material as any) || 'concreto',
                         layer: 'A-WALL' as const,
                     }]
                 }))
             })
 
-            // Guardar ambientes si la IA los incluye
-            if (data.planta.ambientes?.length > 0) {
-                usePlanoStore.getState().setAmbientes(data.planta.ambientes)
+            // ── Agregar PUERTAS si la IA las incluye ──────────────
+            plano.puertas?.forEach((p: any, i: number) => {
+                usePlanoStore.setState((s) => ({
+                    puertas: [...s.puertas, {
+                        id: `puerta-ia-${i}-${Date.now()}`,
+                        muro_id: '',
+                        x: Number(p.x),
+                        y: Number(p.y),
+                        ancho: Number(p.ancho) || 0.90,
+                        angulo_apertura: Number(p.angulo) || 0,
+                        layer: 'A-DOOR' as const,
+                    }]
+                }))
+            })
+
+            // ── Agregar VENTANAS si la IA las incluye ─────────────
+            plano.ventanas?.forEach((v: any, i: number) => {
+                usePlanoStore.setState((s) => ({
+                    ventanas: [...s.ventanas, {
+                        id: `ventana-ia-${i}-${Date.now()}`,
+                        muro_id: '',
+                        x: Number(v.x),
+                        y: Number(v.y),
+                        ancho: Number(v.ancho) || 1.20,
+                        angulo: Number(v.angulo) || 0,
+                        layer: 'A-WIND' as const,
+                    }]
+                }))
+            })
+
+            // ── Guardar ambientes para etiquetas ──────────────────
+            if (plano.ambientes?.length > 0) {
+                usePlanoStore.getState().setAmbientes(plano.ambientes)
             }
 
-            return data.mensaje || '¡Planta generada! Puedes editarla en el canvas.'
+            // ── Centrar la vista en el plano generado ────────────
+            const todosX = plano.muros?.flatMap((m: any) => [m.x1, m.x2]) || []
+            const todosY = plano.muros?.flatMap((m: any) => [m.y1, m.y2]) || []
+            if (todosX.length > 0) {
+                const minX = Math.min(...todosX)
+                const maxX = Math.max(...todosX)
+                const minY = Math.min(...todosY)
+                const maxY = Math.max(...todosY)
+                const centroX = (minX + maxX) / 2
+                const centroY = (minY + maxY) / 2
+
+                // Centrar viewport en el plano generado
+                setTimeout(() => {
+                    const PX = 100
+                    const viewW = window.innerWidth * 0.55
+                    const viewH = window.innerHeight * 0.75
+                    const anchoPlano = (maxX - minX) * PX
+                    const altoPlano = (maxY - minY) * PX
+                    const zoomFit = Math.min(
+                        viewW / (anchoPlano + 100),
+                        viewH / (altoPlano + 100),
+                        2.0
+                    )
+                    const panX = viewW / 2 - centroX * PX * zoomFit
+                    const panY = viewH / 2 - centroY * PX * zoomFit
+
+                    useEditorStore.getState().setZoom(zoomFit)
+                    useEditorStore.getState().setPan(panX, panY)
+                }, 100)
+            }
+
+            return data.mensaje || '¡Planta generada con las herramientas de MyARQIA!'
         }
 
         return data.mensaje || texto

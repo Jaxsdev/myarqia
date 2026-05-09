@@ -129,12 +129,15 @@ export default function CapaUniones({ muros, zoom, panX, panY, modoClaro }: Prop
                     raw.fill()
                 })
 
-                // 2 — Parches en esquinas (tapar juntas)
-                muros.forEach((muro, i) => {
-                    const c = caras[i]
-                    if (!c) return
+                // 2 — Contornos encima de todo
+                polys.forEach((poly, i) => {
+                    if (!poly) return
+                    const c = caras[i]!
                     const ini = { x: c.sx1, y: c.sy1 }
                     const fin = { x: c.sx2, y: c.sy2 }
+
+                    let iniConectado = false
+                    let finConectado = false
 
                     muros.forEach((_, j) => {
                         if (i === j) return
@@ -142,38 +145,32 @@ export default function CapaUniones({ muros, zoom, panX, panY, modoClaro }: Prop
                         if (!co) return
                         const oIni = { x: co.sx1, y: co.sy1 }
                         const oFin = { x: co.sx2, y: co.sy2 }
-
-                        // Si hay conexión, dibujar cuadrado de relleno en el punto de unión
-                        const puntoUnion =
-                            dist(ini, oIni) < UMBRAL ? ini :
-                                dist(ini, oFin) < UMBRAL ? ini :
-                                    dist(fin, oIni) < UMBRAL ? fin :
-                                        dist(fin, oFin) < UMBRAL ? fin : null
-
-                        if (puntoUnion) {
-                            const radio = Math.max(c.ep, co.ep) + 0.5
-                            raw.fillStyle = tema.muroRelleno
-                            raw.fillRect(
-                                puntoUnion.x - radio,
-                                puntoUnion.y - radio,
-                                radio * 2,
-                                radio * 2
-                            )
-                        }
+                        if (dist(ini, oIni) < UMBRAL || dist(ini, oFin) < UMBRAL) iniConectado = true
+                        if (dist(fin, oIni) < UMBRAL || dist(fin, oFin) < UMBRAL) finConectado = true
                     })
-                })
 
-                // 3 — Contornos encima de todo
-                polys.forEach((poly) => {
-                    if (!poly) return
                     raw.beginPath()
+                    // Lado exterior/interior 1 (p1 -> p2)
                     raw.moveTo(poly.p1.x, poly.p1.y)
                     raw.lineTo(poly.p2.x, poly.p2.y)
-                    raw.lineTo(poly.p3.x, poly.p3.y)
+
+                    // Tapa de FIN (p2 -> p3)
+                    if (!finConectado) {
+                        raw.lineTo(poly.p3.x, poly.p3.y)
+                    } else {
+                        raw.moveTo(poly.p3.x, poly.p3.y)
+                    }
+
+                    // Lado exterior/interior 2 (p3 -> p4)
                     raw.lineTo(poly.p4.x, poly.p4.y)
-                    raw.closePath()
+
+                    // Tapa de INICIO (p4 -> p1)
+                    if (!iniConectado) {
+                        raw.lineTo(poly.p1.x, poly.p1.y)
+                    }
+
                     raw.strokeStyle = tema.muroBorde
-                    raw.lineWidth = 0.5
+                    raw.lineWidth = 1 // Un poco más grueso para que se vea bien
                     raw.stroke()
                 })
 
