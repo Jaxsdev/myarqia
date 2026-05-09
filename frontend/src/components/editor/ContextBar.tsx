@@ -31,7 +31,7 @@ export default function ContextBar() {
 
     const renderToolOptions = () => {
         switch (herramienta) {
-            case 'muro':
+            case 'wall':
                 return (
                     <>
                         <div className="h-4 w-px bg-gray-800 mx-1 flex-shrink-0" />
@@ -77,7 +77,7 @@ export default function ContextBar() {
                         </div>
                     </>
                 )
-            case 'puerta':
+            case 'door':
                 return (
                     <>
                         <div className="h-4 w-px bg-gray-800 mx-1 flex-shrink-0" />
@@ -110,7 +110,7 @@ export default function ContextBar() {
                         </div>
                     </>
                 )
-            case 'ventana':
+            case 'window':
                 return (
                     <>
                         <div className="h-4 w-px bg-gray-800 mx-1 flex-shrink-0" />

@@ -1,22 +1,57 @@
 import { useEditorStore } from '../../store/useEditorStore'
 import { TOOLS_CONFIG, type Tool } from '../../store/toolsConfig'
+import {
+    IconPointer,
+    IconWall,
+    IconDoor,
+    IconWindow,
+    IconStairs,
+    IconSquare,
+    IconRulerMeasure,
+    IconTextSize,
+    IconVectorTriangle,
+    IconMagnet,
+    IconAngle,
+    IconSettings,
+} from '@tabler/icons-react'
+
+// Mapping of IDs to Tabler Icons components
+const ICON_MAP: Record<string, any> = {
+    select: IconPointer,
+    wall: IconWall,
+    door: IconDoor,
+    window: IconWindow,
+    stair: IconStairs,
+    column: IconSquare,
+    dim: IconRulerMeasure,
+    text: IconTextSize,
+    area: IconVectorTriangle,
+    snap: IconMagnet,
+    ortho: IconAngle,
+    config: IconSettings,
+}
 
 export default function ToolsSidebar() {
     const { 
         herramienta, 
         setHerramienta, 
         snapActivo, 
-        toggleSnap 
+        toggleSnap,
+        orthoActivo,
+        toggleOrtho
     } = useEditorStore()
 
     const handleToolClick = (tool: Tool) => {
-        if (tool.toggle && tool.id === 'snap') {
+        if (tool.id === 'snap') {
             toggleSnap()
+            return
+        }
+        if (tool.id === 'ortho') {
+            toggleOrtho()
             return
         }
         
         if (tool.action === 'openConfig') {
-            // Logic for opening config would go here
             console.log('Open config panel')
             return
         }
@@ -25,20 +60,24 @@ export default function ToolsSidebar() {
     }
 
     const isToolActive = (tool: Tool) => {
-        if (tool.toggle && tool.id === 'snap') {
-            return snapActivo
-        }
+        if (tool.id === 'snap') return snapActivo
+        if (tool.id === 'ortho') return orthoActivo
         return herramienta === tool.id
     }
 
     return (
-        <aside className="w-[36px] bg-[#141720] border-r border-[#252B3B] flex flex-col items-center py-2 gap-1 flex-shrink-0 z-20">
+        <aside className="w-[40px] bg-gray-900/95 border-r border-gray-800 flex flex-col items-center py-3 gap-1 flex-shrink-0 z-20 backdrop-blur-md">
             {TOOLS_CONFIG.map((group, gIdx) => (
-                <div key={group.group} className="flex flex-col items-center w-full gap-1">
-                    {/* Tool Group */}
+                <div key={group.group} className="flex flex-col items-center w-full gap-1.5">
                     {group.tools.map((tool) => {
+                        const Icon = ICON_MAP[tool.id] || IconSettings
                         const active = isToolActive(tool)
-                        const isGreen = tool.color === 'green' && active
+                        const isToggle = tool.toggle
+                        
+                        // Color logic
+                        let activeClass = 'bg-blue-600/20 text-blue-400'
+                        if (tool.id === 'snap' && active) activeClass = 'bg-green-500/20 text-green-400'
+                        if (tool.id === 'ortho' && active) activeClass = 'bg-orange-500/20 text-orange-400'
 
                         return (
                             <button
@@ -46,28 +85,33 @@ export default function ToolsSidebar() {
                                 onClick={() => handleToolClick(tool)}
                                 title={`${tool.label} ${tool.key ? `[${tool.key.toUpperCase()}]` : ''}`}
                                 className={`
-                                    w-[26px] h-[26px] flex items-center justify-center rounded-[4px] 
-                                    transition-all duration-150 relative cursor-pointer border-none
+                                    w-[30px] h-[30px] flex items-center justify-center rounded-lg 
+                                    transition-all duration-200 relative cursor-pointer border border-transparent
                                     ${active 
-                                        ? isGreen 
-                                            ? 'bg-[#2ECC7120] text-[#2ECC71]' 
-                                            : 'bg-[#2D8EFF20] text-[#2D8EFF]' 
-                                        : 'text-[#8892A0] hover:bg-[#252B3B] hover:text-[#E8ECF0]'
+                                        ? `${activeClass} border-current/20 shadow-sm` 
+                                        : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'
                                     }
                                 `}
                                 style={{ cursor: tool.cursor }}
                             >
-                                <i className={`ti ${tool.icon} text-[14px]`}></i>
-                                {tool.toggle && active && (
-                                    <span className="absolute bottom-[1px] right-[1px] w-[5px] h-[5px] rounded-full bg-[#2D8EFF]"></span>
+                                <Icon size={18} stroke={1.5} />
+                                
+                                {/* Active indicator dot for toggles */}
+                                {isToggle && active && (
+                                    <span className={`absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full ${tool.id === 'snap' ? 'bg-green-500' : 'bg-orange-500'}`}></span>
+                                )}
+
+                                {/* Subtle left border for active drawing tool */}
+                                {!isToggle && active && tool.id !== 'config' && (
+                                    <span className="absolute left-[-4px] top-1/2 -translate-y-1/2 w-1 h-4 bg-blue-500 rounded-r-full"></span>
                                 )}
                             </button>
                         )
                     })}
 
-                    {/* Group Separator (only if not the last group) */}
+                    {/* Divider */}
                     {gIdx < TOOLS_CONFIG.length - 1 && (
-                        <div className="w-[20px] h-[0.5px] bg-[#252B3B] my-[3px]" />
+                        <div className="w-[24px] h-px bg-gray-800/50 my-1" />
                     )}
                 </div>
             ))}
