@@ -46,8 +46,8 @@ export default function CanvasEditor() {
         setCursor, herramienta, setHerramienta,
         snapActivo, toggleSnap, snapSize,
         orthoActivo, toggleOrtho,
-        cotasVisibles, modoClaro,
-        modalConfigAbierto,
+        cotasVisibles, nomenclaturaVisible, grillaVisible,
+        modoClaro, toggleModoClaro, modalConfigAbierto,
         propiedades,
         cursorX, cursorY,
     } = useEditorStore()
@@ -392,9 +392,11 @@ export default function CanvasEditor() {
         >
             <Stage width={tamano.width} height={tamano.height}>
                 <Layer listening={false}>
-                    <Cuadricula zoom={zoom} panX={panX} panY={panY}
-                        width={tamano.width} height={tamano.height}
-                        modoClaro={modoClaro} />
+                    {grillaVisible && (
+                        <Cuadricula zoom={zoom} panX={panX} panY={panY}
+                            width={tamano.width} height={tamano.height}
+                            modoClaro={modoClaro} />
+                    )}
                 </Layer>
 
                 <Layer>
@@ -447,7 +449,7 @@ export default function CanvasEditor() {
                     <CapaEtiquetas
                         ambientes={ambientes}
                         zoom={zoom} panX={panX} panY={panY}
-                        visible={true}
+                        visible={nomenclaturaVisible}
                     />
 
                     {/* Puertas */}

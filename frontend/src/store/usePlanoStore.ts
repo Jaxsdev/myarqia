@@ -71,6 +71,8 @@ interface PlanoState {
     actualizarColumna: (id: string, cambios: Partial<Columna>) => void
     actualizarCota: (id: string, cambios: Partial<Cota>) => void
     actualizarTexto: (id: string, cambios: Partial<ElementoTexto>) => void
+    seleccionarTodo: () => void
+    duplicarSeleccion: () => void
 }
 
 export const usePlanoStore = create<PlanoState>((set, get) => ({
@@ -425,6 +427,99 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
     actualizarTexto: (id, cambios) => set((s) => ({
         textos: s.textos.map((t) => t.id === id ? { ...t, ...cambios } : t)
     })),
+
+    seleccionarTodo: () => set((s) => ({
+        idsSeleccionados: [
+            ...s.muros.map(m => m.id),
+            ...s.puertas.map(p => p.id),
+            ...s.ventanas.map(v => v.id),
+            ...s.escaleras.map(e => e.id),
+            ...s.columnas.map(c => c.id),
+            ...s.cotas.map(co => co.id),
+            ...s.textos.map(t => t.id),
+            ...s.areas.map(a => a.id),
+        ]
+    })),
+
+    duplicarSeleccion: () => {
+        const { idsSeleccionados, muros, puertas, ventanas, escaleras, columnas, cotas, textos, areas } = get()
+        if (idsSeleccionados.length === 0) return
+
+        const offset = 0.25
+        const nuevosMuros: Muro[] = []
+        const nuevasPuertas: Puerta[] = []
+        const nuevasVentanas: Ventana[] = []
+        const nuevasEscaleras: Escalera[] = []
+        const nuevasColumnas: Columna[] = []
+        const nuevasCotas: Cota[] = []
+        const nuevosTextos: ElementoTexto[] = []
+        const nuevasAreas: ElementoArea[] = []
+
+        const mappingIds: Record<string, string> = {}
+
+        // Muros (y mapeo de IDs para dependientes)
+        muros.filter(m => idsSeleccionados.includes(m.id)).forEach(m => {
+            const newId = uid('muro')
+            mappingIds[m.id] = newId
+            nuevosMuros.push({ ...m, id: newId, x1: m.x1 + offset, y1: m.y1 + offset, x2: m.x2 + offset, y2: m.y2 + offset })
+        })
+
+        // Puertas
+        puertas.filter(p => idsSeleccionados.includes(p.id)).forEach(p => {
+            nuevasPuertas.push({ ...p, id: uid('puerta'), x: p.x + offset, y: p.y + offset, muro_id: mappingIds[p.muro_id] || p.muro_id })
+        })
+
+        // Ventanas
+        ventanas.filter(v => idsSeleccionados.includes(v.id)).forEach(v => {
+            nuevasVentanas.push({ ...v, id: uid('ventana'), x: v.x + offset, y: v.y + offset, muro_id: mappingIds[v.muro_id] || v.muro_id })
+        })
+
+        // Escaleras
+        escaleras.filter(e => idsSeleccionados.includes(e.id)).forEach(e => {
+            nuevasEscaleras.push({ ...e, id: uid('escalera'), x1: e.x1 + offset, y1: e.y1 + offset, x2: e.x2 + offset, y2: e.y2 + offset })
+        })
+
+        // Columnas
+        columnas.filter(c => idsSeleccionados.includes(c.id)).forEach(c => {
+            nuevasColumnas.push({ ...c, id: uid('columna'), x: c.x + offset, y: c.y + offset })
+        })
+
+        // Cotas
+        cotas.filter(co => idsSeleccionados.includes(co.id)).forEach(co => {
+            nuevasCotas.push({ ...co, id: uid('cota'), x1: co.x1 + offset, y1: co.y1 + offset, x2: co.x2 + offset, y2: co.y2 + offset })
+        })
+
+        // Textos
+        textos.filter(t => idsSeleccionados.includes(t.id)).forEach(t => {
+            nuevosTextos.push({ ...t, id: uid('texto'), x: t.x + offset, y: t.y + offset })
+        })
+
+        // Areas
+        areas.filter(a => idsSeleccionados.includes(a.id)).forEach(a => {
+            nuevasAreas.push({ ...a, id: uid('area'), puntos: a.puntos.map(p => ({ x: p.x + offset, y: p.y + offset })) })
+        })
+
+        set((s) => ({
+            muros: [...s.muros, ...nuevosMuros],
+            puertas: [...s.puertas, ...nuevasPuertas],
+            ventanas: [...s.ventanas, ...nuevasVentanas],
+            escaleras: [...s.escaleras, ...nuevasEscaleras],
+            columnas: [...s.columnas, ...nuevasColumnas],
+            cotas: [...s.cotas, ...nuevasCotas],
+            textos: [...s.textos, ...nuevosTextos],
+            areas: [...s.areas, ...nuevasAreas],
+            idsSeleccionados: [
+                ...nuevosMuros.map(m => m.id),
+                ...nuevasPuertas.map(p => p.id),
+                ...nuevasVentanas.map(v => v.id),
+                ...nuevasEscaleras.map(e => e.id),
+                ...nuevasColumnas.map(c => c.id),
+                ...nuevasCotas.map(co => co.id),
+                ...nuevosTextos.map(t => t.id),
+                ...nuevasAreas.map(a => a.id),
+            ]
+        }))
+    },
 
     terminarTexto: (contenido, fontSize, color, pManual) => {
         const { puntoInicio } = get()

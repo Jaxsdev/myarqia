@@ -23,34 +23,32 @@ export function useGuardadoAutomatico() {
         } catch { }
     }
 
+    const guardar = async () => {
+        if (!proyectoActual) return
+
+        const estadoActual = JSON.stringify({ muros, puertas, ventanas })
+        if (estadoActual === ultimoGuardado.current) return
+
+        setGuardando(true)
+        const { error } = await supabase
+            .from('proyectos')
+            .update({
+                datos: { muros, puertas, ventanas, escala: 100, unidad: 'metros' },
+            })
+            .eq('id', proyectoActual.id)
+
+        if (!error) {
+            ultimoGuardado.current = estadoActual
+            setUltimaVez(new Date())
+            capturarThumbnail(proyectoActual.id)
+        }
+        setGuardando(false)
+    }
+
     useEffect(() => {
-        const intervalo = setInterval(async () => {
-            if (!proyectoActual) return
-
-            const estadoActual = JSON.stringify({ muros, puertas, ventanas })
-
-            // Solo guardar si hubo cambios
-            if (estadoActual === ultimoGuardado.current) return
-
-            setGuardando(true)
-            const { error } = await supabase
-                .from('proyectos')
-                .update({
-                    datos: { muros, puertas, ventanas, escala: 100, unidad: 'metros' },
-                })
-                .eq('id', proyectoActual.id)
-
-            if (!error) {
-                ultimoGuardado.current = estadoActual
-                setUltimaVez(new Date())
-                // Guardar thumbnail cada 5 guardados
-                if (Math.random() < 0.2) capturarThumbnail(proyectoActual.id)
-            }
-            setGuardando(false)
-        }, INTERVALO_MS)
-
+        const intervalo = setInterval(guardar, INTERVALO_MS)
         return () => clearInterval(intervalo)
     }, [proyectoActual, muros, puertas, ventanas])
 
-    return { guardando, ultimaVez }
-}
+    return { guardando, ultimaVez, forzarGuardado: guardar }
+}

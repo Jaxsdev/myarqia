@@ -72,6 +72,10 @@ interface EditorState {
     setModalConfigAbierto: (open: boolean) => void
     cotasVisibles: boolean
     toggleCotas: () => void
+    nomenclaturaVisible: boolean
+    toggleNomenclatura: () => void
+    grillaVisible: boolean
+    toggleGrilla: () => void
 
     // Propiedades de herramientas
     propiedades: ToolProperties
@@ -115,8 +119,13 @@ export const useEditorStore = create<EditorState>((set) => ({
     setEscala: (escala) => set({ escala }),
     modalConfigAbierto: false,
     cotasVisibles: true,
+    nomenclaturaVisible: true,
+    grillaVisible: true,
     setModalConfigAbierto: (open) => set({ modalConfigAbierto: open }),
     toggleCotas: () => set((state) => ({ cotasVisibles: !state.cotasVisibles })),
+    toggleNomenclatura: () => set((state) => ({ nomenclaturaVisible: !state.nomenclaturaVisible })),
+    grillaVisible: true,
+    toggleGrilla: () => set((state) => ({ grillaVisible: !state.grillaVisible })),
 
     propiedades: {
         muro: {

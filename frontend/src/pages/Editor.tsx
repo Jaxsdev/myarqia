@@ -13,6 +13,7 @@ import PanelChat from '../components/chat/PanelChat'
 import { useExportarPDF } from '../hooks/useExportarPDF'
 import PanelRNE from '../components/editor/PanelRNE'
 import { descargarDXF } from '../lib/exportarDXF'
+import TopBar from '../components/editor/TopBar'
 import ContextBar from '../components/editor/ContextBar'
 
 export default function Editor() {
@@ -21,11 +22,6 @@ export default function Editor() {
     const { setProyectoActual, proyectoActual } = useProyectoStore()
     const { cargarDatos } = usePlanoStore()
     const [cargando, setCargando] = useState(true)
-    const { exportar } = useExportarPDF()
-    const { muros, puertas, ventanas } = usePlanoStore()
-
-    // Autosave activo
-    const { guardando, ultimaVez } = useGuardadoAutomatico()
 
     useEffect(() => {
         const cargar = async () => {
@@ -60,60 +56,9 @@ export default function Editor() {
 
     return (
         <div className="h-screen bg-gray-950 flex flex-col overflow-hidden">
-
-            {/* Navbar */}
-            <nav className="h-11 bg-gray-900 border-b border-gray-800 flex items-center px-4 gap-4 flex-shrink-0">
-                <button onClick={() => navigate('/dashboard')}
-                    className="text-gray-500 hover:text-white text-sm transition-colors">
-                    ← Proyectos
-                </button>
-                <span className="text-gray-700">|</span>
-                <span className="text-white text-sm font-medium">
-                    {proyectoActual?.nombre}
-                </span>
-
-                <button
-                    onClick={exportar}
-                    className="bg-blue-600 hover:bg-blue-500 border border-blue-500 text-white text-xs px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-md"
-                >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    Exportar PDF
-                </button>
-
-                <button
-                    onClick={() => descargarDXF(
-                        muros, puertas, ventanas,
-                        proyectoActual?.nombre || 'proyecto'
-                    )}
-                    className="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 hover:text-white text-xs px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" strokeWidth="2">
-                        <polyline points="16 18 22 12 16 6" />
-                        <polyline points="8 6 2 12 8 18" />
-                    </svg>
-                    Exportar DXF
-                </button>
-
-                {/* Indicador de guardado */}
-                <div className="ml-auto flex items-center gap-3">
-                    {guardando ? (
-                        <span className="text-xs text-yellow-500 animate-pulse">
-                            Guardando...
-                        </span>
-                    ) : ultimaVez ? (
-                        <span className="text-xs text-green-600">
-                            ✓ Guardado {ultimaVez.toLocaleTimeString('es-PE')}
-                        </span>
-                    ) : (
-                        <span className="text-xs text-gray-600">Sin cambios</span>
-                    )}
-                </div>
-            </nav>
+            <TopBar />
             <ContextBar />
+
 
             {/* Área principal */}
             <div className="flex flex-1 overflow-hidden">
