@@ -38,8 +38,8 @@ interface PlanoState {
     iniciarDibujo: (p: Punto, tipo: TipoDibujo) => void
     actualizarDibujo: (p: Punto) => void
     terminarMuro: (espesor?: number, continuar?: boolean) => void
-    terminarPuerta: () => void
-    terminarVentana: () => void
+    terminarPuerta: (ancho?: number, sentido?: 'izquierda' | 'derecha', angulo?: number) => void
+    terminarVentana: (ancho?: number, alto?: number, alfeizar?: number) => void
     cancelarDibujo: () => void
 
     // Selección y eliminación
@@ -107,12 +107,13 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
         }))
     },
 
-    terminarPuerta: () => {
+    terminarPuerta: (ancho, sentido = 'derecha', angulo = 90) => {
         const { puntoInicio, puntoFin } = get()
         if (!puntoInicio || !puntoFin) return
         const dx = puntoFin.x - puntoInicio.x
         const dy = puntoFin.y - puntoInicio.y
-        if (Math.sqrt(dx * dx + dy * dy) < 0.05) {
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        if (dist < 0.05) {
             set({ dibujando: false, puntoInicio: null, puntoFin: null })
             return
         }
@@ -121,7 +122,7 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
                 id: uid('puerta'),
                 muro_id: '',
                 x: puntoInicio.x, y: puntoInicio.y,
-                ancho: Math.sqrt(dx * dx + dy * dy),
+                ancho: ancho || dist,
                 angulo_apertura: Math.atan2(dy, dx),
                 layer: 'A-DOOR',
             }],
@@ -129,12 +130,13 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
         }))
     },
 
-    terminarVentana: () => {
+    terminarVentana: (ancho, alto = 1.20, alfeizar = 0.90) => {
         const { puntoInicio, puntoFin } = get()
         if (!puntoInicio || !puntoFin) return
         const dx = puntoFin.x - puntoInicio.x
         const dy = puntoFin.y - puntoInicio.y
-        if (Math.sqrt(dx * dx + dy * dy) < 0.05) {
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        if (dist < 0.05) {
             set({ dibujando: false, puntoInicio: null, puntoFin: null })
             return
         }
@@ -143,7 +145,7 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
                 id: uid('ventana'),
                 muro_id: '',
                 x: puntoInicio.x, y: puntoInicio.y,
-                ancho: Math.sqrt(dx * dx + dy * dy),
+                ancho: ancho || dist,
                 angulo: Math.atan2(dy, dx),
                 layer: 'A-WIND',
             }],
