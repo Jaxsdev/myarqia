@@ -20,6 +20,21 @@ interface ToolProperties {
         alto: number
         alfeizar: number
     }
+    escalera: {
+        peldaños: number
+        paso: number
+        contrapaso: number
+    }
+    columna: {
+        ancho: number
+        largo: number
+        forma: 'cuadrada' | 'circular'
+    }
+    texto: {
+        fontSize: number
+        color: string
+        bold: boolean
+    }
 }
 
 interface EditorState {
@@ -53,6 +68,8 @@ interface EditorState {
     setVista: (v: Vista) => void
     escala: string
     setEscala: (e: string) => void
+    modalConfigAbierto: boolean
+    setModalConfigAbierto: (open: boolean) => void
     cotasVisibles: boolean
     toggleCotas: () => void
 
@@ -61,6 +78,9 @@ interface EditorState {
     setPropiedadMuro: (p: Partial<ToolProperties['muro']>) => void
     setPropiedadPuerta: (p: Partial<ToolProperties['puerta']>) => void
     setPropiedadVentana: (p: Partial<ToolProperties['ventana']>) => void
+    setPropiedadEscalera: (p: Partial<ToolProperties['escalera']>) => void
+    setPropiedadColumna: (p: Partial<ToolProperties['columna']>) => void
+    setPropiedadTexto: (p: Partial<ToolProperties['texto']>) => void
 
     // Modo visual
     modoClaro: boolean
@@ -93,8 +113,10 @@ export const useEditorStore = create<EditorState>((set) => ({
     setVista: (vista) => set({ vista }),
     escala: '1:100',
     setEscala: (escala) => set({ escala }),
+    modalConfigAbierto: false,
     cotasVisibles: true,
-    toggleCotas: () => set((s) => ({ cotasVisibles: !s.cotasVisibles })),
+    setModalConfigAbierto: (open) => set({ modalConfigAbierto: open }),
+    toggleCotas: () => set((state) => ({ cotasVisibles: !state.cotasVisibles })),
 
     propiedades: {
         muro: {
@@ -112,6 +134,21 @@ export const useEditorStore = create<EditorState>((set) => ({
             ancho: 1.20,
             alto: 1.20,
             alfeizar: 0.90
+        },
+        escalera: {
+            peldaños: 15,
+            paso: 0.25,
+            contrapaso: 0.175
+        },
+        columna: {
+            ancho: 0.30,
+            largo: 0.30,
+            forma: 'cuadrada'
+        },
+        texto: {
+            fontSize: 0.18, // 18cm en metros
+            color: '#1a1a1a',
+            bold: false
         }
     },
     setPropiedadMuro: (p) => set((s) => ({ 
@@ -122,6 +159,15 @@ export const useEditorStore = create<EditorState>((set) => ({
     })),
     setPropiedadVentana: (p) => set((s) => ({ 
         propiedades: { ...s.propiedades, ventana: { ...s.propiedades.ventana, ...p } } 
+    })),
+    setPropiedadEscalera: (p) => set((s) => ({ 
+        propiedades: { ...s.propiedades, escalera: { ...s.propiedades.escalera, ...p } } 
+    })),
+    setPropiedadColumna: (p) => set((s) => ({ 
+        propiedades: { ...s.propiedades, columna: { ...s.propiedades.columna, ...p } } 
+    })),
+    setPropiedadTexto: (p) => set((s) => ({ 
+        propiedades: { ...s.propiedades, texto: { ...s.propiedades.texto, ...p } } 
     })),
 
     modoClaro: false,

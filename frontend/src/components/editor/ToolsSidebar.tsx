@@ -38,7 +38,8 @@ export default function ToolsSidebar() {
         snapActivo, 
         toggleSnap,
         orthoActivo,
-        toggleOrtho
+        toggleOrtho,
+        setModalConfigAbierto
     } = useEditorStore()
 
     const handleToolClick = (tool: Tool) => {
@@ -52,7 +53,7 @@ export default function ToolsSidebar() {
         }
         
         if (tool.action === 'openConfig') {
-            console.log('Open config panel')
+            setModalConfigAbierto(true)
             return
         }
 

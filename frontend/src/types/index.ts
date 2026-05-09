@@ -58,8 +58,62 @@ export interface Ventana {
     x: number
     y: number
     ancho: number
-    angulo: number        // ← agregar este campo
+    angulo: number
     layer: 'A-WIND'
+}
+
+export interface Escalera {
+    id: string
+    x1: number
+    y1: number
+    x2: number
+    y2: number
+    anchoMuro?: number // ancho de la escalera
+    peldaños: number
+    paso: number
+    contrapaso: number
+    layer: 'A-STAIR'
+}
+
+export interface Columna {
+    id: string
+    x: number
+    y: number
+    ancho: number
+    largo: number
+    forma: 'cuadrada' | 'circular'
+    radio?: number
+    layer: 'A-STRUCT'
+}
+
+export interface Cota {
+    id: string
+    x1: number
+    y1: number
+    x2: number
+    y2: number
+    offset: number // Distancia de la línea de cota respecto a los puntos
+    valorManual?: number
+    layer: 'A-DIM'
+}
+
+export interface ElementoTexto {
+    id: string
+    x: number
+    y: number
+    contenido: string
+    fontSize: number
+    color: string
+    bold?: boolean
+    italic?: boolean
+    layer: 'A-ANNO-TEXT'
+}
+
+export interface ElementoArea {
+    id: string
+    puntos: Punto[]
+    area: number
+    layer: 'A-AREA'
 }
 
 export interface MensajeChat {

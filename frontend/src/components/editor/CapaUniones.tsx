@@ -1,11 +1,13 @@
 import { Shape } from 'react-konva'
-import type { Muro } from '../../types'
+import type { Muro, Puerta, Ventana } from '../../types'
 import Konva from 'konva'
 import { calcularCarasMuro } from './ElementoMuro'
 import { TEMA_CLARO, TEMA_OSCURO } from '../../lib/temas'
 
 interface Props {
     muros: Muro[]
+    puertas: Puerta[]
+    ventanas: Ventana[]
     zoom: number
     panX: number
     panY: number
@@ -32,7 +34,7 @@ function intersLineas(a1: Vec2, a2: Vec2, b1: Vec2, b2: Vec2): Vec2 | null {
 
 const UMBRAL = 12
 
-export default function CapaUniones({ muros, zoom, panX, panY, modoClaro }: Props) {
+export default function CapaUniones({ muros, puertas, ventanas, zoom, panX, panY, modoClaro }: Props) {
     if (muros.length === 0) return null
     const tema = modoClaro ? TEMA_CLARO : TEMA_OSCURO
 
@@ -117,8 +119,13 @@ export default function CapaUniones({ muros, zoom, panX, panY, modoClaro }: Prop
                 raw.lineJoin = 'miter'
 
                 // 1 — Rellenos
-                polys.forEach((poly) => {
+                polys.forEach((poly, i) => {
                     if (!poly) return
+                    
+                    // Si el muro tiene una puerta, no rellenamos el hueco (simplificado para MVP)
+                    // En una versión más avanzada segmentaríamos el relleno también
+                    const tieneApertura = puertas.some(p => p.muro_id === muros[i].id) || ventanas.some(v => v.muro_id === muros[i].id)
+                    
                     raw.beginPath()
                     raw.moveTo(poly.p1.x, poly.p1.y)
                     raw.lineTo(poly.p2.x, poly.p2.y)
@@ -127,6 +134,30 @@ export default function CapaUniones({ muros, zoom, panX, panY, modoClaro }: Prop
                     raw.closePath()
                     raw.fillStyle = tema.muroRelleno
                     raw.fill()
+                    
+                    // Si hay puertas/ventanas, "limpiamos" el hueco
+                    const aberturasMuro = [
+                        ...puertas.filter(p => p.muro_id === muros[i].id).map(p => ({ x: p.x, y: p.y, ancho: p.ancho })),
+                        ...ventanas.filter(v => v.muro_id === muros[i].id).map(v => ({ x: v.x, y: v.y, ancho: v.ancho }))
+                    ]
+
+                    aberturasMuro.forEach(ab => {
+                        const m = muros[i]
+                        const ang = Math.atan2(m.y2 - m.y1, m.x2 - m.x1)
+                        const ax = ws(ab.x, panX, zoom)
+                        const ay = ws(ab.y, panY, zoom)
+                        const wPx = ab.ancho * PX * zoom
+                        const hPx = (m.espesor + 0.1) * PX * zoom // Un poco más ancho que el muro para asegurar el corte
+                        
+                        raw.save()
+                        raw.globalCompositeOperation = 'destination-out'
+                        raw.translate(ax, ay)
+                        raw.rotate(ang)
+                        raw.beginPath()
+                        raw.rect(-wPx / 2, -hPx / 2, wPx, hPx)
+                        raw.fill()
+                        raw.restore()
+                    })
                 })
 
                 // 2 — Contornos encima de todo

@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react'
 import { usePlanoStore } from '../../store/usePlanoStore'
 
 export default function PanelPropiedades() {
-    const { muros, puertas, ventanas, idSeleccionado,
+    const { muros, puertas, ventanas, idsSeleccionados,
         eliminarSeleccionado, actualizarMuro,
         actualizarPuerta, actualizarVentana } = usePlanoStore()
 
+    const idSeleccionado = idsSeleccionados.length > 0 ? idsSeleccionados[idsSeleccionados.length - 1] : null
     const muro = muros.find((m) => m.id === idSeleccionado)
     const puerta = puertas.find((p) => p.id === idSeleccionado)
     const ventana = ventanas.find((v) => v.id === idSeleccionado)

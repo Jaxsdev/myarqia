@@ -7,7 +7,7 @@ interface Props {
     panX: number
     panY: number
     seleccionado: boolean
-    onClick: (id: string) => void
+    onClick: (id: string, multi?: boolean) => void
 }
 
 const PX = 100
@@ -50,7 +50,7 @@ export default function ElementoMuro({
     if (!seleccionado) return null
 
     return (
-        <Group onClick={() => onClick(muro.id)}>
+        <Group onClick={(e) => onClick(muro.id, e.evt.shiftKey)}>
             <Line
                 points={[c.p1.x, c.p1.y, c.p2.x, c.p2.y, c.p3.x, c.p3.y, c.p4.x, c.p4.y]}
                 closed
@@ -79,7 +79,7 @@ export function MuroHitArea({
             stroke="transparent"
             strokeWidth={0}
             hitStrokeWidth={14}
-            onClick={() => onClick(muro.id)}
+            onClick={(e) => onClick(muro.id, e.evt.shiftKey)}
         />
     )
 }

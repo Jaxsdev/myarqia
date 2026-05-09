@@ -8,7 +8,7 @@ interface Props {
     panX: number
     panY: number
     seleccionado: boolean
-    onClick: (id: string) => void
+    onClick: (id: string, multi?: boolean) => void
     modoClaro: boolean
 }
 
@@ -33,34 +33,34 @@ export default function ElementoVentana({
 
     return (
         <Group
-            onClick={() => onClick(ventana.id)}
+            onClick={(e) => onClick(ventana.id, e.evt.shiftKey)}
             rotation={angGrados}
             x={cx} y={cy}
         >
             {/* Línea exterior (marco) */}
             <Line
-                points={[0, -grosorPx, anchoPx, -grosorPx]}
+                points={[-anchoPx / 2, -grosorPx, anchoPx / 2, -grosorPx]}
                 stroke={color}
                 strokeWidth={seleccionado ? 2.5 : 2}
                 hitStrokeWidth={10}
             />
             {/* Línea del vidrio (centro) */}
             <Line
-                points={[0, 0, anchoPx, 0]}
+                points={[-anchoPx / 2, 0, anchoPx / 2, 0]}
                 stroke={color}
                 strokeWidth={1}
                 opacity={0.5}
             />
             {/* Línea interior (marco) */}
             <Line
-                points={[0, grosorPx, anchoPx, grosorPx]}
+                points={[-anchoPx / 2, grosorPx, anchoPx / 2, grosorPx]}
                 stroke={color}
                 strokeWidth={seleccionado ? 2.5 : 2}
             />
             {/* Tapas laterales */}
-            <Line points={[0, -grosorPx, 0, grosorPx]}
+            <Line points={[-anchoPx / 2, -grosorPx, -anchoPx / 2, grosorPx]}
                 stroke={color} strokeWidth={1.5} />
-            <Line points={[anchoPx, -grosorPx, anchoPx, grosorPx]}
+            <Line points={[anchoPx / 2, -grosorPx, anchoPx / 2, grosorPx]}
                 stroke={color} strokeWidth={1.5} />
         </Group>
     )
