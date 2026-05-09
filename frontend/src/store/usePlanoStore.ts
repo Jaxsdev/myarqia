@@ -13,7 +13,7 @@ export interface AmbienteIA {
 let contador = 1
 const uid = (p: string) => `${p}-${contador++}`
 
-type TipoDibujo = 'muro' | 'puerta' | 'ventana'
+type TipoDibujo = 'muro' | 'puerta' | 'ventana' | 'escalera' | 'columna' | 'cota'
 
 interface PlanoState {
 
@@ -40,6 +40,9 @@ interface PlanoState {
     terminarMuro: (espesor?: number, continuar?: boolean) => void
     terminarPuerta: () => void
     terminarVentana: () => void
+    terminarEscalera: () => void
+    terminarColumna: () => void
+    terminarCota: () => void
     cancelarDibujo: () => void
 
     // Selección y eliminación
@@ -149,6 +152,21 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
             }],
             dibujando: false, puntoInicio: null, puntoFin: null,
         }))
+    },
+
+    terminarEscalera: () => {
+        console.log("Terminar Escalera")
+        set({ dibujando: false, puntoInicio: null, puntoFin: null })
+    },
+
+    terminarColumna: () => {
+        console.log("Terminar Columna")
+        set({ dibujando: false, puntoInicio: null, puntoFin: null })
+    },
+
+    terminarCota: () => {
+        console.log("Terminar Cota")
+        set({ dibujando: false, puntoInicio: null, puntoFin: null })
     },
 
     cancelarDibujo: () => set({

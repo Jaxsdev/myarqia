@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import CanvasEditor from '../components/editor/CanvasEditor'
-import BarraHerramientas from '../components/editor/BarraHerramientas'
+import ToolsSidebar from '../components/editor/ToolsSidebar'
 import HUD from '../components/editor/HUD'
 import PanelPropiedades from '../components/editor/PanelPropiedades'
 import { useProyectoStore } from '../store/useProyectoStore'
@@ -115,7 +115,7 @@ export default function Editor() {
 
             {/* Área principal */}
             <div className="flex flex-1 overflow-hidden">
-                <BarraHerramientas />
+                <ToolsSidebar />
                 <div className="flex flex-col flex-1 overflow-hidden">
                     <div className="flex-1 overflow-hidden">
                         <CanvasEditor />

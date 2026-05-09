@@ -39,6 +39,7 @@ export default function CanvasEditor() {
         dibujando, tipoDibujo, puntoInicio, puntoFin,
         idSeleccionado, iniciarDibujo, actualizarDibujo,
         terminarMuro, terminarPuerta, terminarVentana,
+        terminarEscalera, terminarColumna, terminarCota,
         cancelarDibujo, seleccionar, eliminarSeleccionado } = usePlanoStore()
 
     const { setHerramienta } = useEditorStore()
@@ -66,10 +67,13 @@ export default function CanvasEditor() {
 
             switch (e.key.toLowerCase()) {
                 case 'escape': cancelarDibujo(); break
-                case 'w': setHerramienta('muro'); break
-                case 'd': setHerramienta('puerta'); break
-                case 'v': setHerramienta('ventana'); break
-                case 's': setHerramienta('seleccionar'); break
+                case 'w': setHerramienta('wall'); break
+                case 'd': setHerramienta('door'); break
+                case 'v': setHerramienta('window'); break
+                case 'e': setHerramienta('stair'); break
+                case 'c': setHerramienta('column'); break
+                case 'q': setHerramienta('dim'); break
+                case 's': setHerramienta('select'); break
                 case 'delete':
                 case 'backspace':
                     eliminarSeleccionado(); break
@@ -107,19 +111,31 @@ export default function CanvasEditor() {
         }
         if (e.button === 0) {
             const p = getPunto(e)
-            if (herramienta === 'muro') {
+            if (herramienta === 'wall') {
                 if (!dibujando) iniciarDibujo(p, 'muro')
                 else terminarMuro(0.25, true)
             }
-            if (herramienta === 'puerta') {
+            if (herramienta === 'door') {
                 if (!dibujando) iniciarDibujo(p, 'puerta')
                 else terminarPuerta()
             }
-            if (herramienta === 'ventana') {
+            if (herramienta === 'window') {
                 if (!dibujando) iniciarDibujo(p, 'ventana')
                 else terminarVentana()
             }
-            if (herramienta === 'seleccionar') seleccionar(null)
+            if (herramienta === 'stair') {
+                if (!dibujando) iniciarDibujo(p, 'escalera')
+                else terminarEscalera()
+            }
+            if (herramienta === 'column') {
+                if (!dibujando) iniciarDibujo(p, 'columna')
+                else terminarColumna()
+            }
+            if (herramienta === 'dim') {
+                if (!dibujando) iniciarDibujo(p, 'cota')
+                else terminarCota()
+            }
+            if (herramienta === 'select') seleccionar(null)
         }
     }, [herramienta, dibujando, getPunto])
 
@@ -143,7 +159,7 @@ export default function CanvasEditor() {
     }, [panX, panY, zoom, dibujando, getPunto])
 
     const cursorStyle =
-        herramienta === 'seleccionar' ? 'default' : 'crosshair'
+        herramienta === 'select' ? 'default' : 'crosshair'
 
     return (
         <div
@@ -240,7 +256,7 @@ export default function CanvasEditor() {
                     {/* Preview puerta/ventana */}
                     {dibujando && tipoDibujo !== 'muro' && puntoInicio && puntoFin && (
                         <PreviewElemento inicio={puntoInicio} fin={puntoFin}
-                            tipo={tipoDibujo as 'puerta' | 'ventana'}
+                            tipo={tipoDibujo as any}
                             zoom={zoom} panX={panX} panY={panY} />
                     )}
                 </Layer>

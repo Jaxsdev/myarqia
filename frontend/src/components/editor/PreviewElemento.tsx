@@ -4,7 +4,7 @@ import type { Punto } from '../../types'
 interface Props {
     inicio: Punto
     fin: Punto
-    tipo: 'puerta' | 'ventana'
+    tipo: 'puerta' | 'ventana' | 'escalera' | 'columna' | 'cota'
     zoom: number
     panX: number
     panY: number
@@ -21,7 +21,13 @@ export default function PreviewElemento({
     const x2 = ws(fin.x, panX, zoom)
     const y2 = ws(fin.y, panY, zoom)
 
-    const color = tipo === 'puerta' ? '#fbbf24' : '#06b6d4'
+    const color = {
+        puerta: '#fbbf24',
+        ventana: '#06b6d4',
+        escalera: '#a855f7',
+        columna: '#ef4444',
+        cota: '#3b82f6'
+    }[tipo]
 
     return (
         <Line

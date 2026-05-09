@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-type Herramienta = 'seleccionar' | 'muro' | 'puerta' | 'ventana' | 'texto'
+type Herramienta = 'select' | 'wall' | 'door' | 'window' | 'stair' | 'column' | 'dim' | 'text' | 'area' | 'snap' | 'config'
 
 interface EditorState {
     // Viewport
@@ -39,7 +39,7 @@ export const useEditorStore = create<EditorState>((set) => ({
     setZoom: (zoom) => set({ zoom }),
     setPan: (panX, panY) => set({ panX, panY }),
 
-    herramienta: 'seleccionar',
+    herramienta: 'select',
     setHerramienta: (herramienta) => set({ herramienta }),
 
     cotasVisibles: true,
