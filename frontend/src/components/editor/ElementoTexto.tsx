@@ -1,7 +1,5 @@
-import React from 'react'
 import { Group, Text } from 'react-konva'
 import type { ElementoTexto } from '../../types'
-import { TEMA_CLARO, TEMA_OSCURO } from '../../lib/temas'
 import { usePlanoStore } from '../../store/usePlanoStore'
 
 interface Props {
@@ -23,7 +21,7 @@ function ws(m: number, pan: number, zoom: number) {
 export default function ElementoTextoComponent({
     texto, zoom, panX, panY, seleccionado, onClick, modoClaro
 }: Props) {
-    const tema = modoClaro ? TEMA_CLARO : TEMA_OSCURO
+
     const actualizarTexto = usePlanoStore(s => s.actualizarTexto)
     
     const x = ws(texto.x, panX, zoom)

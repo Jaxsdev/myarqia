@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type MouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/useAuthStore'
@@ -69,17 +69,13 @@ export default function Dashboard() {
         setCreando(false)
     }
 
-    const eliminarProyecto = async (id: string, e: React.MouseEvent) => {
+    const eliminarProyecto = async (id: string, e: MouseEvent) => {
         e.stopPropagation()
         if (!confirm('¿Eliminar este proyecto?')) return
         await supabase.from('proyectos').delete().eq('id', id)
         setProyectos((prev) => prev.filter((p) => p.id !== id))
     }
 
-    const formatFecha = (fecha: string) =>
-        new Date(fecha).toLocaleDateString('es-PE', {
-            day: '2-digit', month: 'short', year: 'numeric',
-        })
 
     return (
         <div className="min-h-screen bg-gray-950 text-white">

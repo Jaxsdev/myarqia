@@ -1,17 +1,7 @@
 import { create } from 'zustand'
-import type { Muro, Puerta, Ventana, Escalera, Columna, Cota, ElementoTexto, ElementoArea, Punto } from '../types'
+import type { Muro, Puerta, Ventana, Escalera, Columna, Cota, ElementoTexto, ElementoArea, Punto, Ambiente } from '../types'
 
-export interface AmbienteIA {
-    nombre: string
-    x: number
-    y: number
-    ancho: number
-    largo: number
-    color?: string
-}
-
-let contador = 1
-const uid = (p: string) => `${p}-${contador++}`
+const uid = (p: string) => `${p}-${crypto.randomUUID().slice(0, 8)}`
 
 type TipoDibujo = 'muro' | 'puerta' | 'ventana' | 'escalera' | 'columna' | 'cota' | 'area'
 
@@ -35,8 +25,8 @@ export interface EntradaHistorial {
 
 interface PlanoState {
 
-    ambientes: AmbienteIA[]
-    setAmbientes: (a: AmbienteIA[]) => void
+    ambientes: Ambiente[]
+    setAmbientes: (a: Ambiente[]) => void
 
     muros: Muro[]
     puertas: Puerta[]
@@ -77,8 +67,8 @@ interface PlanoState {
     iniciarDibujo: (p: Punto, tipo: TipoDibujo) => void
     actualizarDibujo: (p: Punto) => void
     terminarMuro: (espesor?: number, continuar?: boolean) => void
-    terminarPuerta: (ancho?: number, sentido?: 'izquierda' | 'derecha', angulo?: number) => void
-    terminarVentana: (ancho?: number, alto?: number, alfeizar?: number) => void
+    terminarPuerta: (ancho?: number, _sentido?: 'izquierda' | 'derecha', _angulo?: number, pManual?: Punto) => void
+    terminarVentana: (ancho?: number, _alto?: number, _alfeizar?: number, pManual?: Punto) => void
     terminarEscalera: (peldaños?: number, paso?: number, contrapaso?: number) => void
     terminarColumna: (ancho?: number, largo?: number, forma?: 'cuadrada' | 'circular', pManual?: Punto) => void
     terminarCota: (p?: Punto) => void
@@ -99,7 +89,7 @@ interface PlanoState {
     irAEstado: (id: string) => void
 
     // Cargar desde Supabase
-    cargarDatos: (muros: Muro[], puertas: Puerta[], ventanas: Ventana[], escaleras?: Escalera[], columnas?: Columna[], cotas?: Cota[], textos?: ElementoTexto[], areas?: ElementoArea[], ambientes?: AmbienteIA[], capas?: Capa[], historial?: EntradaHistorial[]) => void
+    cargarDatos: (muros: Muro[], puertas: Puerta[], ventanas: Ventana[], escaleras?: Escalera[], columnas?: Columna[], cotas?: Cota[], textos?: ElementoTexto[], areas?: ElementoArea[], ambientes?: Ambiente[], capas?: Capa[], historial?: EntradaHistorial[]) => void
     limpiarTodo: () => void
 
     actualizarMuro: (id: string, cambios: Partial<Muro>) => void
@@ -278,7 +268,7 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
         }))
     },
 
-    terminarPuerta: (ancho, sentido = 'derecha', angulo = 90, pManual?: Punto) => {
+    terminarPuerta: (ancho, _sentido = 'derecha', _angulo = 90, pManual?: Punto) => {
         const { puntoInicio, puntoFin, muros } = get()
         const pIn = pManual || puntoInicio
         const pFi = pManual || puntoFin
@@ -343,7 +333,7 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
         }))
     },
 
-    terminarVentana: (ancho, alto = 1.20, alfeizar = 0.90, pManual?: Punto) => {
+    terminarVentana: (ancho, _alto = 1.20, _alfeizar = 0.90, pManual?: Punto) => {
         const { puntoInicio, puntoFin, muros } = get()
         const pIn = pManual || puntoInicio
         const pFi = pManual || puntoFin

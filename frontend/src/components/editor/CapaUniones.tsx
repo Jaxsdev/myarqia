@@ -50,7 +50,7 @@ export default function CapaUniones({ muros, puertas, ventanas, zoom, panX, panY
                 const caras = muros.map((m) => calcularCarasMuro(m, zoom, panX, panY))
 
                 // Calcular polígonos ajustados con intersecciones en mitra
-                const polys = muros.map((muro, i) => {
+                const polys = muros.map((_muro, i) => {
                     const c = caras[i]
                     if (!c) return null
 
@@ -124,7 +124,6 @@ export default function CapaUniones({ muros, puertas, ventanas, zoom, panX, panY
                     
                     // Si el muro tiene una puerta, no rellenamos el hueco (simplificado para MVP)
                     // En una versión más avanzada segmentaríamos el relleno también
-                    const tieneApertura = puertas.some(p => p.muro_id === muros[i].id) || ventanas.some(v => v.muro_id === muros[i].id)
                     
                     raw.beginPath()
                     raw.moveTo(poly.p1.x, poly.p1.y)

@@ -1,7 +1,5 @@
-import React from 'react'
 import { Group, Rect, Circle } from 'react-konva'
 import type { Columna } from '../../types'
-import { TEMA_CLARO, TEMA_OSCURO } from '../../lib/temas'
 
 interface Props {
     columna: Columna
@@ -22,7 +20,7 @@ function ws(m: number, pan: number, zoom: number) {
 export default function ElementoColumna({
     columna, zoom, panX, panY, seleccionado, onClick, modoClaro
 }: Props) {
-    const tema = modoClaro ? TEMA_CLARO : TEMA_OSCURO
+
     const cx = ws(columna.x, panX, zoom)
     const cy = ws(columna.y, panY, zoom)
     const anchoPx = columna.ancho * PX * zoom

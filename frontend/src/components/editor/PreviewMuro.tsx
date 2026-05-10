@@ -37,10 +37,6 @@ export default function PreviewMuro({ inicio, fin, espesor, zoom, panX, panY }: 
     const p3 = { x: x2s - nx, y: y2s - ny }
     const p4 = { x: x1s - nx, y: y1s - ny }
 
-    // Longitud en metros para mostrar
-    const longitudMetros = Math.sqrt(
-        (fin.x - inicio.x) ** 2 + (fin.y - inicio.y) ** 2
-    ).toFixed(2)
 
     return (
         <>

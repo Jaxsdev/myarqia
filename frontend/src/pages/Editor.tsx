@@ -8,17 +8,14 @@ import LeftPanel from '../components/editor/LeftPanel'
 import RightPanel from '../components/editor/RightPanel'
 import { useProyectoStore } from '../store/useProyectoStore'
 import { usePlanoStore } from '../store/usePlanoStore'
-import { useGuardadoAutomatico } from '../hooks/useGuardadoAutomatico'
 import type { Proyecto } from '../types'
-import { useExportarPDF } from '../hooks/useExportarPDF'
-import { descargarDXF } from '../lib/exportarDXF'
 import TopBar from '../components/editor/TopBar'
 import ContextBar from '../components/editor/ContextBar'
 
 export default function Editor() {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
-    const { setProyectoActual, proyectoActual } = useProyectoStore()
+    const { setProyectoActual } = useProyectoStore()
     const { cargarDatos } = usePlanoStore()
     const [cargando, setCargando] = useState(true)
 

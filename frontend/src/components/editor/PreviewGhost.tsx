@@ -1,6 +1,5 @@
-import React from 'react'
 import { Group, Line, Arc, Circle, Rect } from 'react-konva'
-import type { Punto, Muro } from '../../types'
+import type { Muro } from '../../types'
 
 interface Props {
     x: number

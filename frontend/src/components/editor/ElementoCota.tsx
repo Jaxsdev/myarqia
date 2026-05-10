@@ -1,7 +1,5 @@
-import React from 'react'
 import { Group, Line, Text } from 'react-konva'
 import type { Cota } from '../../types'
-import { TEMA_CLARO, TEMA_OSCURO } from '../../lib/temas'
 
 interface Props {
     cota: Cota
@@ -22,7 +20,7 @@ function ws(m: number, pan: number, zoom: number) {
 export default function ElementoCota({
     cota, zoom, panX, panY, seleccionado, onClick, modoClaro
 }: Props) {
-    const tema = modoClaro ? TEMA_CLARO : TEMA_OSCURO
+
     
     // Puntos originales
     const x1 = cota.x1, y1 = cota.y1

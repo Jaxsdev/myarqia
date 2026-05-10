@@ -1,7 +1,5 @@
-import React from 'react'
 import { Group, Line, Arrow, Rect } from 'react-konva'
 import type { Escalera } from '../../types'
-import { TEMA_CLARO, TEMA_OSCURO } from '../../lib/temas'
 
 interface Props {
     escalera: Escalera
@@ -20,9 +18,9 @@ function ws(m: number, pan: number, zoom: number) {
 }
 
 export default function ElementoEscalera({
-    escalera, zoom, panX, panY, seleccionado, onClick, modoClaro
+    escalera, zoom, panX, panY, seleccionado, onClick
 }: Props) {
-    const tema = modoClaro ? TEMA_CLARO : TEMA_OSCURO
+
     
     const x1 = ws(escalera.x1, panX, zoom)
     const y1 = ws(escalera.y1, panY, zoom)

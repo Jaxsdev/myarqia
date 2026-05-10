@@ -1,21 +1,16 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { usePlanoStore } from '../../store/usePlanoStore'
 import { verificarRNE, type ObservacionRNE } from '../../lib/verificadorRNE'
 
 export default function PanelRNE() {
     const { muros, puertas, ventanas } = usePlanoStore()
-    const [abierto, setAbierto] = useState(false)
 
     const resultado = useMemo(
         () => verificarRNE(muros, puertas, ventanas),
         [muros, puertas, ventanas]
     )
 
-    const colorBadge =
-        resultado.errores > 0 ? 'bg-red-500' :
-            resultado.advertencias > 0 ? 'bg-yellow-500' : 'bg-green-500'
 
-    const totalProblemas = resultado.errores + resultado.advertencias
 
     return (
         <div className="h-full flex flex-col bg-gray-900 overflow-hidden">

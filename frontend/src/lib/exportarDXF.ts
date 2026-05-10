@@ -6,7 +6,7 @@ export function generarDXF(
     muros: Muro[],
     puertas: Puerta[],
     ventanas: Ventana[],
-    nombreProyecto: string
+    _nombreProyecto: string
 ): string {
     const L: string[] = []
     const push = (...args: (string | number)[]) => args.forEach(a => L.push(String(a)))

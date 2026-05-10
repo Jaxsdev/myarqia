@@ -1,4 +1,3 @@
-import React from 'react'
 import { Group, Line, Text } from 'react-konva'
 import type { ElementoArea } from '../../types'
 

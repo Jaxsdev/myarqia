@@ -39,7 +39,7 @@ export interface Muro {
     altura: number          // altura libre del muro en metros (default 2.80)
     alturaBase: number      // offset desde el piso en metros (default 0)
     material: 'concreto' | 'ladrillo' | 'tabique' | 'drywall'
-    layer: 'A-WALL'
+    layer: string
 }
 
 export interface Puerta {
@@ -49,7 +49,7 @@ export interface Puerta {
     y: number
     ancho: number
     angulo_apertura: number
-    layer: 'A-DOOR'
+    layer: string
 }
 
 export interface Ventana {
@@ -59,7 +59,7 @@ export interface Ventana {
     y: number
     ancho: number
     angulo: number
-    layer: 'A-WIND'
+    layer: string
 }
 
 export interface Escalera {
@@ -72,7 +72,7 @@ export interface Escalera {
     peldaños: number
     paso: number
     contrapaso: number
-    layer: 'A-STAIR'
+    layer: string
 }
 
 export interface Columna {
@@ -83,7 +83,7 @@ export interface Columna {
     largo: number
     forma: 'cuadrada' | 'circular'
     radio?: number
-    layer: 'A-STRUCT'
+    layer: string
 }
 
 export interface Cota {
@@ -94,7 +94,7 @@ export interface Cota {
     y2: number
     offset: number // Distancia de la línea de cota respecto a los puntos
     valorManual?: number
-    layer: 'A-DIM'
+    layer: string
 }
 
 export interface ElementoTexto {
@@ -106,7 +106,7 @@ export interface ElementoTexto {
     color: string
     bold?: boolean
     italic?: boolean
-    layer: 'A-ANNO-TEXT'
+    layer: string
 }
 
 export interface ElementoArea {
@@ -114,7 +114,7 @@ export interface ElementoArea {
     nombre?: string
     puntos: Punto[]
     area: number
-    layer: 'A-AREA'
+    layer: string
 }
 
 export interface MensajeChat {

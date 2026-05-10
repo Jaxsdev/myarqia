@@ -124,7 +124,6 @@ export const useEditorStore = create<EditorState>((set) => ({
     setModalConfigAbierto: (open) => set({ modalConfigAbierto: open }),
     toggleCotas: () => set((state) => ({ cotasVisibles: !state.cotasVisibles })),
     toggleNomenclatura: () => set((state) => ({ nomenclaturaVisible: !state.nomenclaturaVisible })),
-    grillaVisible: true,
     toggleGrilla: () => set((state) => ({ grillaVisible: !state.grillaVisible })),
 
     propiedades: {
