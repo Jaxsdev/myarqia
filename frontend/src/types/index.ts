@@ -111,6 +111,7 @@ export interface ElementoTexto {
 
 export interface ElementoArea {
     id: string
+    nombre?: string
     puntos: Punto[]
     area: number
     layer: 'A-AREA'

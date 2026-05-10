@@ -18,93 +18,65 @@ export default function PanelRNE() {
     const totalProblemas = resultado.errores + resultado.advertencias
 
     return (
-        <>
-            {/* Botón flotante */}
-            <button
-                onClick={() => setAbierto(!abierto)}
-                className={`
-          fixed bottom-12 right-4 z-50
-          flex items-center gap-2 px-3 py-2 rounded-xl
-          border transition-all shadow-lg text-sm font-medium
-          ${abierto
-                        ? 'bg-gray-800 border-gray-600 text-white'
-                        : 'bg-gray-900 border-gray-700 text-gray-300 hover:border-gray-500'}
-        `}>
-                <span className="text-base">📋</span>
-                <span>RNE</span>
-                {totalProblemas > 0 ? (
-                    <span className={`${colorBadge} text-white text-xs px-1.5 py-0.5 rounded-full font-bold`}>
-                        {totalProblemas}
-                    </span>
-                ) : (
-                    <span className="bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full">✓</span>
-                )}
-            </button>
-
-            {/* Panel desplegable */}
-            {abierto && (
-                <div className="fixed bottom-20 right-4 z-50 w-80 bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl overflow-hidden">
-
-                    {/* Header */}
-                    <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
-                        <div>
-                            <h3 className="text-white text-sm font-bold">
-                                Verificación RNE
-                            </h3>
-                            <p className="text-gray-500 text-xs mt-0.5">
-                                Reglamento Nacional de Edificaciones · Perú
-                            </p>
-                        </div>
-                        <div className={`
-              px-2.5 py-1 rounded-lg text-xs font-bold
-              ${resultado.aprobado
-                                ? 'bg-green-900/40 text-green-400 border border-green-700/40'
-                                : 'bg-red-900/40 text-red-400 border border-red-700/40'}
-            `}>
-                            {resultado.aprobado ? '✓ APROBADO' : '✗ OBSERVADO'}
-                        </div>
-                    </div>
-
-                    {/* Resumen */}
-                    <div className="px-4 py-2 border-b border-gray-800 flex gap-3">
-                        <div className="flex items-center gap-1.5 text-xs">
-                            <span className="w-2 h-2 rounded-full bg-red-500" />
-                            <span className="text-gray-400">{resultado.errores} error(es)</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-xs">
-                            <span className="w-2 h-2 rounded-full bg-yellow-500" />
-                            <span className="text-gray-400">{resultado.advertencias} advertencia(s)</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-xs">
-                            <span className="w-2 h-2 rounded-full bg-green-500" />
-                            <span className="text-gray-400">
-                                {resultado.observaciones.filter(o => o.tipo === 'ok').length} ok
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Lista de observaciones */}
-                    <div className="max-h-72 overflow-y-auto">
-                        {resultado.observaciones.length === 0 ? (
-                            <div className="p-6 text-center text-gray-600 text-sm">
-                                Dibuja elementos en el plano para verificar
-                            </div>
-                        ) : (
-                            resultado.observaciones.map((obs) => (
-                                <ObservacionItem key={obs.id} obs={obs} />
-                            ))
-                        )}
-                    </div>
-
-                    {/* Footer */}
-                    <div className="px-4 py-2 border-t border-gray-800">
-                        <p className="text-gray-700 text-xs text-center">
-                            La verificación es orientativa · Consultar con arquitecto colegiado
-                        </p>
-                    </div>
+        <div className="h-full flex flex-col bg-gray-900 overflow-hidden">
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
+                <div>
+                    <h3 className="text-white text-sm font-bold">
+                        Verificación RNE
+                    </h3>
+                    <p className="text-gray-500 text-xs mt-0.5">
+                        Reglamento Nacional de Edificaciones
+                    </p>
                 </div>
-            )}
-        </>
+                <div className={`
+                    px-2.5 py-1 rounded-lg text-xs font-bold
+                    ${resultado.aprobado
+                        ? 'bg-green-900/40 text-green-400 border border-green-700/40'
+                        : 'bg-red-900/40 text-red-400 border border-red-700/40'}
+                `}>
+                    {resultado.aprobado ? '✓ APROBADO' : '✗ OBSERVADO'}
+                </div>
+            </div>
+
+            {/* Resumen */}
+            <div className="px-4 py-2 border-b border-gray-800 flex gap-3">
+                <div className="flex items-center gap-1.5 text-xs">
+                    <span className="w-2 h-2 rounded-full bg-red-500" />
+                    <span className="text-gray-400">{resultado.errores} error(es)</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs">
+                    <span className="w-2 h-2 rounded-full bg-yellow-500" />
+                    <span className="text-gray-400">{resultado.advertencias} adv.</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs">
+                    <span className="w-2 h-2 rounded-full bg-green-500" />
+                    <span className="text-gray-400">
+                        {resultado.observaciones.filter(o => o.tipo === 'ok').length} ok
+                    </span>
+                </div>
+            </div>
+
+            {/* Lista de observaciones */}
+            <div className="flex-1 overflow-y-auto">
+                {resultado.observaciones.length === 0 ? (
+                    <div className="p-6 text-center text-gray-600 text-sm">
+                        Dibuja elementos en el plano para verificar
+                    </div>
+                ) : (
+                    resultado.observaciones.map((obs) => (
+                        <ObservacionItem key={obs.id} obs={obs} />
+                    ))
+                )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-4 py-3 border-t border-gray-800">
+                <p className="text-gray-700 text-xs text-center leading-relaxed">
+                    La verificación es orientativa.<br/> Consultar con un arquitecto.
+                </p>
+            </div>
+        </div>
     )
 }
 

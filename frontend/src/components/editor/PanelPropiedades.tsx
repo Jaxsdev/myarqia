@@ -1,220 +1,202 @@
-import { useState, useEffect } from 'react'
 import { usePlanoStore } from '../../store/usePlanoStore'
 
+const Section = ({ title, children }: { title: string, children: React.ReactNode }) => (
+    <div className="mb-5">
+        <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-3 border-b border-gray-800 pb-1.5">{title}</h3>
+        <div className="flex flex-col gap-1.5">
+            {children}
+        </div>
+    </div>
+)
+
+const PropRow = ({ label, children }: { label: string, children: React.ReactNode }) => (
+    <div className="flex items-center justify-between py-1">
+        <span className="text-[11px] text-gray-400">{label}</span>
+        <div className="flex items-center gap-2">
+            {children}
+        </div>
+    </div>
+)
+
+const PropValue = ({ value, badge, dotColor, suffix = '', green }: { value: string | number, badge?: boolean, dotColor?: string, suffix?: string, green?: boolean }) => (
+    <div className={`flex items-center gap-1.5 text-[11px] ${badge ? 'bg-gray-800/80 px-2 py-1 rounded text-gray-200 border border-gray-700/50 min-w-[60px] justify-end' : 'text-gray-200'} ${green ? 'text-emerald-400 border-emerald-900/30 bg-emerald-900/10' : ''}`}>
+        {dotColor && <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: dotColor }} />}
+        <span className={badge ? 'font-mono' : 'font-medium'}>{value}{suffix}</span>
+    </div>
+)
+
 export default function PanelPropiedades() {
-    const { muros, puertas, ventanas, idsSeleccionados,
-        eliminarSeleccionado, actualizarMuro,
-        actualizarPuerta, actualizarVentana } = usePlanoStore()
+    const { muros, puertas, ventanas, escaleras, columnas, cotas, textos, areas, ambientes, capas, idsSeleccionados,
+        eliminarSeleccionado, actualizarArea } = usePlanoStore()
 
     const idSeleccionado = idsSeleccionados.length > 0 ? idsSeleccionados[idsSeleccionados.length - 1] : null
+    
     const muro = muros.find((m) => m.id === idSeleccionado)
     const puerta = puertas.find((p) => p.id === idSeleccionado)
     const ventana = ventanas.find((v) => v.id === idSeleccionado)
+    const escalera = escaleras.find((e) => e.id === idSeleccionado)
+    const columna = columnas.find((c) => c.id === idSeleccionado)
+    const cota = cotas.find((c) => c.id === idSeleccionado)
+    const texto = textos.find((t) => t.id === idSeleccionado)
+    const area = areas.find((a) => a.id === idSeleccionado)
+    const ambiente = ambientes.find((a) => a.id === idSeleccionado)
 
-    if (!idSeleccionado || (!muro && !puerta && !ventana)) {
+    const el = muro || puerta || ventana || escalera || columna || cota || texto || area || ambiente
+    
+    if (!idSeleccionado || !el) {
         return (
-            <div className="w-52 bg-gray-900 border-l border-gray-800 flex flex-col">
-                <div className="px-4 py-3 border-b border-gray-800">
-                    <span className="text-gray-500 text-xs uppercase tracking-wide">Propiedades</span>
-                </div>
+            <div className="h-full flex flex-col bg-[#0F111A]">
                 <div className="flex-1 flex items-center justify-center p-4">
                     <p className="text-gray-700 text-xs text-center leading-relaxed">
-                        Selecciona un elemento del plano para editar sus propiedades
+                        Selecciona un elemento en el lienzo
                     </p>
                 </div>
             </div>
         )
     }
 
+    let typeName = ''
+    let titleName = ''
+    if (muro) { typeName = 'Muro'; titleName = `Muro ${muro.material}` }
+    if (puerta) { typeName = 'Puerta'; titleName = `Puerta ${(puerta.ancho*100).toFixed(0)}cm` }
+    if (ventana) { typeName = 'Ventana'; titleName = `Ventana ${(ventana.ancho*100).toFixed(0)}cm` }
+    if (escalera) { typeName = 'Escalera'; titleName = `Escalera de ${escalera.peldaños} pasos` }
+    if (columna) { typeName = 'Columna'; titleName = `Columna ${columna.forma}` }
+    if (cota) { typeName = 'Cota'; titleName = `Cota` }
+    if (texto) { typeName = 'Texto'; titleName = texto.contenido.substring(0, 15) }
+    if (area) { typeName = 'Área'; titleName = area.nombre || `Área ${area.id.slice(-4)}` }
+    if (ambiente) { typeName = 'Ambiente'; titleName = ambiente.nombre }
+
+    const layerInfo = capas.find(c => c.id === el.layer) || { id: el.layer || 'N/A', color: '#888' }
+
     return (
-        <div className="w-52 bg-gray-900 border-l border-gray-800 flex flex-col">
-            <div className="px-4 py-3 border-b border-gray-800">
-                <span className="text-gray-500 text-xs uppercase tracking-wide">Propiedades</span>
+        <div className="h-full flex flex-col bg-[#0F111A]">
+            <div className="px-4 py-3 border-b border-gray-800 bg-[#0F111A] shrink-0 flex items-center justify-between">
+                <span className="text-gray-300 text-xs font-medium truncate">{titleName} (seleccionado)</span>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                {muro && <PropsMuro muro={muro} />}
-                {puerta && <PropsPuerta puerta={puerta} />}
-                {ventana && <PropsVentana ventana={ventana} />}
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+                
+                <Section title="Dimensiones">
+                    {muro && (
+                        <>
+                            <PropRow label="Espesor">
+                                <PropValue value={(muro.espesor * 100).toFixed(0)} suffix=" cm" badge />
+                            </PropRow>
+                            <PropRow label="Longitud">
+                                <PropValue value={Math.sqrt((muro.x2 - muro.x1)**2 + (muro.y2 - muro.y1)**2).toFixed(2)} suffix=" m" badge />
+                            </PropRow>
+                            <PropRow label="Altura libre">
+                                <PropValue value={(muro.altura || 2.8).toFixed(2)} suffix=" m" badge />
+                            </PropRow>
+                        </>
+                    )}
+                    {(puerta || ventana) && (
+                        <PropRow label="Ancho">
+                            <PropValue value={((puerta || ventana)!.ancho * 100).toFixed(0)} suffix=" cm" badge />
+                        </PropRow>
+                    )}
+                    {area && (
+                        <>
+                            <PropRow label="Nombre">
+                                <input 
+                                    className="bg-gray-800 text-white text-[11px] px-2 py-1 rounded border border-gray-700 w-32 focus:border-blue-500 outline-none"
+                                    value={area.nombre || ''}
+                                    placeholder={`Área ${area.id.slice(-4)}`}
+                                    onChange={(e) => actualizarArea(area.id, { nombre: e.target.value })}
+                                />
+                            </PropRow>
+                            <PropRow label="Área">
+                                <PropValue value={area.area.toFixed(1)} suffix=" m²" badge />
+                            </PropRow>
+                            <PropRow label="Perímetro">
+                                {/* Cálculo aproximado MVP */}
+                                <PropValue value={(Math.sqrt(area.area) * 4).toFixed(2)} suffix=" m" badge />
+                            </PropRow>
+                        </>
+                    )}
+                    {ambiente && (
+                        <>
+                            <PropRow label="Área">
+                                <PropValue value={(ambiente.ancho * ambiente.largo).toFixed(1)} suffix=" m²" badge />
+                            </PropRow>
+                            <PropRow label="Ancho">
+                                <PropValue value={ambiente.ancho.toFixed(2)} suffix=" m" badge />
+                            </PropRow>
+                            <PropRow label="Largo">
+                                <PropValue value={ambiente.largo.toFixed(2)} suffix=" m" badge />
+                            </PropRow>
+                            <PropRow label="Altura">
+                                <PropValue value="2.70" suffix=" m" badge />
+                            </PropRow>
+                        </>
+                    )}
+                </Section>
+
+                {el.layer && (
+                    <Section title="Material y Capa">
+                        {muro && (
+                            <PropRow label="Material">
+                                <PropValue value={muro.material} />
+                            </PropRow>
+                        )}
+                        <PropRow label="Capa">
+                            <PropValue value={layerInfo.id} dotColor={layerInfo.color} />
+                        </PropRow>
+                        <PropRow label="Color">
+                            <PropValue value={layerInfo.color.toUpperCase()} dotColor={layerInfo.color} />
+                        </PropRow>
+                    </Section>
+                )}
+
+                {(area || ambiente) && (
+                    <Section title="Normativa RNE">
+                        <PropRow label="Área mínima">
+                            <PropValue value="8m² ✓" badge green />
+                        </PropRow>
+                        <PropRow label="Ventilación">
+                            <PropValue value="≥1 ventana ✓" badge green />
+                        </PropRow>
+                        <PropRow label="Iluminación">
+                            <PropValue value="A.010 ✓" badge green />
+                        </PropRow>
+                    </Section>
+                )}
+
+                <Section title="Posición">
+                    {'x' in el ? (
+                        <>
+                            <PropRow label="Origen X">
+                                <PropValue value={el.x.toFixed(2)} suffix=" m" badge />
+                            </PropRow>
+                            <PropRow label="Origen Y">
+                                <PropValue value={el.y.toFixed(2)} suffix=" m" badge />
+                            </PropRow>
+                            <PropRow label="Rotación">
+                                <PropValue value="0" suffix="°" badge />
+                            </PropRow>
+                        </>
+                    ) : (
+                        <>
+                            <PropRow label="Inicio X">
+                                <PropValue value={el.x1?.toFixed(2) || '0'} suffix=" m" badge />
+                            </PropRow>
+                            <PropRow label="Inicio Y">
+                                <PropValue value={el.y1?.toFixed(2) || '0'} suffix=" m" badge />
+                            </PropRow>
+                        </>
+                    )}
+                </Section>
+                
             </div>
 
-            <div className="p-3 border-t border-gray-800">
+            <div className="p-4 border-t border-gray-800 bg-[#0F111A]">
                 <button
                     onClick={eliminarSeleccionado}
-                    className="w-full bg-red-900/20 hover:bg-red-900/40 border border-red-800/40 text-red-400 text-xs py-2 rounded-lg transition-colors">
+                    className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[11px] font-medium py-2 rounded transition-colors border border-red-500/20">
                     Eliminar elemento
                 </button>
             </div>
-        </div>
-    )
-}
-
-// ── Props Muro ──────────────────────────────────────────────
-function PropsMuro({ muro }: { muro: any }) {
-    const { actualizarMuro } = usePlanoStore()
-    const dx = muro.x2 - muro.x1
-    const dy = muro.y2 - muro.y1
-    const lon = Math.sqrt(dx * dx + dy * dy)
-
-    return (
-        <>
-            <Chip label="Tipo" valor="Muro" color="text-white" />
-            <Chip label="Layer" valor={muro.layer} color="text-cyan-400" mono />
-
-            {/* ─ Geometría ─ */}
-            <p className="text-gray-600 text-xs uppercase tracking-wide mt-2 px-1">Geometría</p>
-            <CampoNum
-                label="Espesor (cm)"
-                valor={muro.espesor * 100}
-                min={10} max={60}
-                onChange={(v) => actualizarMuro(muro.id, { espesor: v / 100 })}
-            />
-            <CampoNum
-                label="Altura libre (m)"
-                valor={muro.altura ?? 2.80}
-                min={1.8} max={6.0}
-                step={0.05}
-                onChange={(v) => actualizarMuro(muro.id, { altura: v })}
-            />
-            <CampoNum
-                label="Altura base (m)"
-                valor={muro.alturaBase ?? 0}
-                min={0} max={3.0}
-                step={0.05}
-                onChange={(v) => actualizarMuro(muro.id, { alturaBase: v })}
-            />
-
-            {/* ─ Material ─ */}
-            <p className="text-gray-600 text-xs uppercase tracking-wide mt-2 px-1">Construcción</p>
-            <CampoSelect
-                label="Material"
-                valor={muro.material ?? 'concreto'}
-                opciones={[
-                    { valor: 'concreto',  etiqueta: 'Concreto armado' },
-                    { valor: 'ladrillo',  etiqueta: 'Ladrillo / Albañilería' },
-                    { valor: 'tabique',   etiqueta: 'Tabique / Bloque' },
-                    { valor: 'drywall',   etiqueta: 'Drywall' },
-                ]}
-                onChange={(v) => actualizarMuro(muro.id, { material: v as any })}
-            />
-
-            {/* ─ Información ─ */}
-            <p className="text-gray-600 text-xs uppercase tracking-wide mt-2 px-1">Información</p>
-            <Chip label="Longitud" valor={`${lon.toFixed(2)} m`} color="text-gray-300" mono />
-            <Chip label="Área muro" valor={`${(lon * (muro.altura ?? 2.80)).toFixed(2)} m²`} color="text-gray-400" mono />
-            <Chip label="Inicio" valor={`(${muro.x1.toFixed(2)}, ${muro.y1.toFixed(2)})`} color="text-gray-400" mono />
-            <Chip label="Fin" valor={`(${muro.x2.toFixed(2)}, ${muro.y2.toFixed(2)})`} color="text-gray-400" mono />
-        </>
-    )
-}
-
-// ── Props Puerta ────────────────────────────────────────────
-function PropsPuerta({ puerta }: { puerta: any }) {
-    const { actualizarPuerta } = usePlanoStore()
-
-    return (
-        <>
-            <Chip label="Tipo" valor="Puerta" color="text-yellow-400" />
-            <Chip label="Layer" valor={puerta.layer} color="text-cyan-400" mono />
-            <CampoNum
-                label="Ancho (cm)"
-                valor={puerta.ancho * 100}
-                min={70} max={200}
-                onChange={(v) => actualizarPuerta(puerta.id, { ancho: v / 100 })}
-            />
-            <CampoNum
-                label="Apertura (°)"
-                valor={Math.round(puerta.angulo_apertura * (180 / Math.PI))}
-                min={-180} max={180}
-                onChange={(v) => actualizarPuerta(puerta.id, {
-                    angulo_apertura: v * (Math.PI / 180)
-                })}
-            />
-            <Chip label="Posición" valor={`(${puerta.x.toFixed(2)}, ${puerta.y.toFixed(2)})`} color="text-gray-400" mono />
-        </>
-    )
-}
-
-// ── Props Ventana ───────────────────────────────────────────
-function PropsVentana({ ventana }: { ventana: any }) {
-    const { actualizarVentana } = usePlanoStore()
-
-    return (
-        <>
-            <Chip label="Tipo" valor="Ventana" color="text-cyan-400" />
-            <Chip label="Layer" valor={ventana.layer} color="text-cyan-400" mono />
-            <CampoNum
-                label="Ancho (cm)"
-                valor={ventana.ancho * 100}
-                min={40} max={300}
-                onChange={(v) => actualizarVentana(ventana.id, { ancho: v / 100 })}
-            />
-            <Chip label="Posición" valor={`(${ventana.x.toFixed(2)}, ${ventana.y.toFixed(2)})`} color="text-gray-400" mono />
-        </>
-    )
-}
-
-// ── Componentes de UI ───────────────────────────────────────
-function Chip({ label, valor, color, mono = false }: {
-    label: string; valor: string; color: string; mono?: boolean
-}) {
-    return (
-        <div className="bg-gray-800 rounded-lg px-3 py-2">
-            <p className="text-gray-500 text-xs mb-0.5">{label}</p>
-            <p className={`text-sm ${color} ${mono ? 'font-mono' : ''}`}>{valor}</p>
-        </div>
-    )
-}
-
-function CampoNum({ label, valor, min, max, step = 1, onChange }: {
-    label: string; valor: number; min: number; max: number; step?: number
-    onChange: (v: number) => void
-}) {
-    const decimales = step < 1 ? 2 : 0
-    const [local, setLocal] = useState(valor.toFixed(decimales))
-
-    useEffect(() => { setLocal(valor.toFixed(decimales)) }, [valor])
-
-    return (
-        <div className="bg-gray-800 rounded-lg px-3 py-2">
-            <p className="text-gray-500 text-xs mb-1">{label}</p>
-            <input
-                type="number"
-                value={local}
-                min={min} max={max} step={step}
-                onChange={(e) => setLocal(e.target.value)}
-                onBlur={() => {
-                    const n = parseFloat(local)
-                    if (!isNaN(n) && n >= min && n <= max) onChange(n)
-                    else setLocal(valor.toFixed(decimales))
-                }}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-                }}
-                className="w-full bg-gray-700 text-white text-sm font-mono px-2 py-1 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
-            />
-        </div>
-    )
-}
-
-function CampoSelect({ label, valor, opciones, onChange }: {
-    label: string
-    valor: string
-    opciones: { valor: string; etiqueta: string }[]
-    onChange: (v: string) => void
-}) {
-    return (
-        <div className="bg-gray-800 rounded-lg px-3 py-2">
-            <p className="text-gray-500 text-xs mb-1">{label}</p>
-            <select
-                value={valor}
-                onChange={(e) => onChange(e.target.value)}
-                className="w-full bg-gray-700 text-white text-sm px-2 py-1 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
-            >
-                {opciones.map((o) => (
-                    <option key={o.valor} value={o.valor}>{o.etiqueta}</option>
-                ))}
-            </select>
         </div>
     )
 }

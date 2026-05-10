@@ -1,4 +1,5 @@
 import { useEditorStore } from '../../store/useEditorStore'
+import { usePlanoStore } from '../../store/usePlanoStore'
 import { TOOLS_CONFIG, type Tool } from '../../store/toolsConfig'
 import {
     IconPointer,
@@ -42,6 +43,8 @@ export default function ToolsSidebar() {
         setModalConfigAbierto
     } = useEditorStore()
 
+    const { setCapaActiva } = usePlanoStore()
+
     const handleToolClick = (tool: Tool) => {
         if (tool.id === 'snap') {
             toggleSnap()
@@ -58,6 +61,21 @@ export default function ToolsSidebar() {
         }
 
         setHerramienta(tool.id as any)
+
+        // Auto-switch layer based on tool
+        const LAYER_MAP: Record<string, string> = {
+            'wall': 'A-WALL',
+            'door': 'A-DOOR',
+            'window': 'A-WIND',
+            'stair': 'A-STAIR',
+            'column': 'A-STRUCT',
+            'dim': 'A-DIM',
+            'text': 'A-ANNO-TEXT',
+            'area': 'A-AREA',
+        }
+        if (LAYER_MAP[tool.id]) {
+            setCapaActiva(LAYER_MAP[tool.id])
+        }
     }
 
     const isToolActive = (tool: Tool) => {

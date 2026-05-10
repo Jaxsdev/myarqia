@@ -83,6 +83,13 @@ export default function ElementoCota({
                 opacity={0.6}
             />
 
+            {/* Hit area invisible para fácil selección */}
+            <Line
+                points={[sx1, sy1, sx2, sy2]}
+                stroke="transparent"
+                strokeWidth={20}
+            />
+
             {/* Línea de cota principal */}
             <Line
                 points={[sx1, sy1, sx2, sy2]}

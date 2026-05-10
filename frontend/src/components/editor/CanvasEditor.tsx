@@ -61,9 +61,25 @@ export default function CanvasEditor() {
         terminarEscalera, terminarColumna, terminarCota, terminarTexto, terminarArea,
         cancelarDibujo, seleccionar, eliminarSeleccionado,
         moverSeleccion, pasoDibujo,
+        undo, redo, saveHistory, capas
     } = usePlanoStore()
 
     const tema = modoClaro ? TEMA_CLARO : TEMA_OSCURO
+
+    // Filtros de Capas
+    const capasVisibles = capas.reduce((acc, c) => ({ ...acc, [c.id]: c.visible }), {} as Record<string, boolean>)
+    const capasBloqueadas = capas.reduce((acc, c) => ({ ...acc, [c.id]: c.locked }), {} as Record<string, boolean>)
+
+    const murosV = muros.filter(m => capasVisibles[m.layer] !== false)
+    const puertasV = puertas.filter(p => capasVisibles[p.layer] !== false)
+    const ventanasV = ventanas.filter(v => capasVisibles[v.layer] !== false)
+    const escalerasV = escaleras.filter(e => capasVisibles[e.layer] !== false)
+    const columnasV = columnas.filter(c => capasVisibles[c.layer] !== false)
+    const cotasV = cotas.filter(c => capasVisibles[c.layer] !== false)
+    const textosV = textos.filter(t => capasVisibles[t.layer] !== false)
+    const areasV = areas.filter(a => capasVisibles[a.layer] !== false)
+
+    const isSelectable = (layer?: string) => layer ? !capasBloqueadas[layer] : true
 
     // --- Resize observer ---
     useEffect(() => {
@@ -85,6 +101,23 @@ export default function CanvasEditor() {
             // No interferir con inputs de texto
             if (e.target instanceof HTMLInputElement ||
                 e.target instanceof HTMLTextAreaElement) return
+
+            // Undo / Redo
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+                if (e.shiftKey) {
+                    e.preventDefault()
+                    redo()
+                } else {
+                    e.preventDefault()
+                    undo()
+                }
+                return
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+                e.preventDefault()
+                redo()
+                return
+            }
 
             switch (e.key.toLowerCase()) {
                 case 'escape':
@@ -115,7 +148,7 @@ export default function CanvasEditor() {
         }
         window.addEventListener('keydown', handler)
         return () => window.removeEventListener('keydown', handler)
-    }, [cancelarDibujo, setHerramienta, toggleOrtho, toggleSnap, eliminarSeleccionado])
+    }, [cancelarDibujo, setHerramienta, toggleOrtho, toggleSnap, eliminarSeleccionado, undo, redo])
 
     const getPunto = useCallback((e: React.MouseEvent): Punto => {
         const rect = contenedorRef.current!.getBoundingClientRect()
@@ -163,7 +196,7 @@ export default function CanvasEditor() {
 
             // 4. Snap a bordes de muros (para inserción de puertas/ventanas)
             if (!snapped && (herramienta === 'door' || herramienta === 'window')) {
-                for (const m of muros) {
+                for (const m of murosV) {
                     const l2 = (m.x2 - m.x1) ** 2 + (m.y2 - m.y1) ** 2
                     if (l2 === 0) continue
                     let t = ((mx - m.x1) * (m.x2 - m.x1) + (my - m.y1) * (m.y2 - m.y1)) / l2
@@ -363,16 +396,39 @@ export default function CanvasEditor() {
 
                         const nuevosIds: string[] = []
 
-                        muros.forEach(m => {
+                        murosV.forEach(m => {
+                            if (!isSelectable(m.layer)) return
                             const in1 = m.x1 >= x1 && m.x1 <= x2 && m.y1 >= y1 && m.y1 <= y2
                             const in2 = m.x2 >= x1 && m.x2 <= x2 && m.y2 >= y1 && m.y2 <= y2
                             if (in1 || in2) nuevosIds.push(m.id)
                         })
-                        puertas.forEach(p => {
+                        puertasV.forEach(p => {
+                            if (!isSelectable(p.layer)) return
                             if (p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2) nuevosIds.push(p.id)
                         })
-                        ventanas.forEach(v => {
+                        ventanasV.forEach(v => {
+                            if (!isSelectable(v.layer)) return
                             if (v.x >= x1 && v.x <= x2 && v.y >= y1 && v.y <= y2) nuevosIds.push(v.id)
+                        })
+                        escalerasV.forEach(e => {
+                            if (!isSelectable(e.layer)) return
+                            if (e.x1 >= x1 && e.x1 <= x2 && e.y1 >= y1 && e.y1 <= y2) nuevosIds.push(e.id)
+                        })
+                        columnasV.forEach(c => {
+                            if (!isSelectable(c.layer)) return
+                            if (c.x >= x1 && c.x <= x2 && c.y >= y1 && c.y <= y2) nuevosIds.push(c.id)
+                        })
+                        cotasV.forEach(co => {
+                            if (!isSelectable(co.layer)) return
+                            if (co.x1 >= x1 && co.x1 <= x2 && co.y1 >= y1 && co.y1 <= y2) nuevosIds.push(co.id)
+                        })
+                        textosV.forEach(t => {
+                            if (!isSelectable(t.layer)) return
+                            if (t.x >= x1 && t.x <= x2 && t.y >= y1 && t.y <= y2) nuevosIds.push(t.id)
+                        })
+                        areasV.forEach(a => {
+                            if (!isSelectable(a.layer)) return
+                            if (a.puntos.some(p => p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2)) nuevosIds.push(a.id)
                         })
 
                         nuevosIds.forEach(id => seleccionar(id, true))
@@ -403,20 +459,22 @@ export default function CanvasEditor() {
 
                     {/* Capa de uniones — dibuja todos los muros unidos */}
                     <CapaUniones
-                        muros={muros}
-                        puertas={puertas}
-                        ventanas={ventanas}
+                        muros={murosV}
+                        puertas={puertasV}
+                        ventanas={ventanasV}
                         zoom={zoom} panX={panX} panY={panY}
                         modoClaro={modoClaro}
                     />
 
                     {/* Áreas invisibles de detección de clicks */}
-                    {muros.map((m) => (
+                    {murosV.map((m) => (
                         <MuroHitArea
                             key={`hit-${m.id}`} muro={m}
                             zoom={zoom} panX={panX} panY={panY}
                             onClick={(id, multi) => {
+                                if (!isSelectable(m.layer)) return;
                                 if (herramienta === 'select') {
+                                    saveHistory()
                                     seleccionar(id, multi)
                                     moviendo.current = true
                                     posInicioMover.current = getPunto({ clientX: ultimaPosicion.current.x, clientY: ultimaPosicion.current.y } as any)
@@ -432,6 +490,7 @@ export default function CanvasEditor() {
                             seleccionado={idsSeleccionados.includes(m.id)}
                             onClick={(id, multi) => {
                                 if (herramienta === 'select') {
+                                    saveHistory()
                                     seleccionar(id, multi)
                                     moviendo.current = true
                                     posInicioMover.current = getPunto({ clientX: ultimaPosicion.current.x, clientY: ultimaPosicion.current.y } as any)
@@ -453,12 +512,14 @@ export default function CanvasEditor() {
                     />
 
                     {/* Puertas */}
-                    {puertas.map((p) => (
+                    {puertasV.map((p) => (
                         <ElementoPuerta key={p.id} puerta={p}
                             zoom={zoom} panX={panX} panY={panY}
                             seleccionado={idsSeleccionados.includes(p.id)}
                             onClick={(id, multi) => {
+                                if (!isSelectable(p.layer)) return;
                                 if (herramienta === 'select') {
+                                    saveHistory()
                                     seleccionar(id, multi)
                                     moviendo.current = true
                                     posInicioMover.current = getPunto({ clientX: ultimaPosicion.current.x, clientY: ultimaPosicion.current.y } as any)
@@ -468,12 +529,14 @@ export default function CanvasEditor() {
                     ))}
 
                     {/* Áreas */}
-                    {areas.map((a) => (
+                    {areasV.map((a) => (
                         <ElementoArea key={a.id} area={a}
                             zoom={zoom} panX={panX} panY={panY}
                             seleccionado={idsSeleccionados.includes(a.id)}
                             onClick={(id, multi) => {
+                                if (!isSelectable(a.layer)) return;
                                 if (herramienta === 'select') {
+                                    saveHistory()
                                     seleccionar(id, multi)
                                     moviendo.current = true
                                     posInicioMover.current = getPunto({ clientX: ultimaPosicion.current.x, clientY: ultimaPosicion.current.y } as any)
@@ -483,12 +546,14 @@ export default function CanvasEditor() {
                     ))}
 
                     {/* Textos */}
-                    {textos.map((t) => (
+                    {textosV.map((t) => (
                         <ElementoTexto key={t.id} texto={t}
                             zoom={zoom} panX={panX} panY={panY}
                             seleccionado={idsSeleccionados.includes(t.id)}
                             onClick={(id, multi) => {
+                                if (!isSelectable(t.layer)) return;
                                 if (herramienta === 'select') {
+                                    saveHistory()
                                     seleccionar(id, multi)
                                     moviendo.current = true
                                     posInicioMover.current = getPunto({ clientX: ultimaPosicion.current.x, clientY: ultimaPosicion.current.y } as any)
@@ -498,12 +563,14 @@ export default function CanvasEditor() {
                     ))}
 
                     {/* Cotas */}
-                    {cotas.map((co) => (
+                    {cotasV.map((co) => (
                         <ElementoCota key={co.id} cota={co}
                             zoom={zoom} panX={panX} panY={panY}
                             seleccionado={idsSeleccionados.includes(co.id)}
                             onClick={(id, multi) => {
+                                if (!isSelectable(co.layer)) return;
                                 if (herramienta === 'select') {
+                                    saveHistory()
                                     seleccionar(id, multi)
                                     moviendo.current = true
                                     posInicioMover.current = getPunto({ clientX: ultimaPosicion.current.x, clientY: ultimaPosicion.current.y } as any)
@@ -513,12 +580,14 @@ export default function CanvasEditor() {
                     ))}
 
                     {/* Columnas */}
-                    {columnas.map((c) => (
+                    {columnasV.map((c) => (
                         <ElementoColumna key={c.id} columna={c}
                             zoom={zoom} panX={panX} panY={panY}
                             seleccionado={idsSeleccionados.includes(c.id)}
                             onClick={(id, multi) => {
+                                if (!isSelectable(c.layer)) return;
                                 if (herramienta === 'select') {
+                                    saveHistory()
                                     seleccionar(id, multi)
                                     moviendo.current = true
                                     posInicioMover.current = getPunto({ clientX: ultimaPosicion.current.x, clientY: ultimaPosicion.current.y } as any)
@@ -528,12 +597,14 @@ export default function CanvasEditor() {
                     ))}
 
                     {/* Escaleras */}
-                    {escaleras.map((e) => (
+                    {escalerasV.map((e) => (
                         <ElementoEscalera key={e.id} escalera={e}
                             zoom={zoom} panX={panX} panY={panY}
                             seleccionado={idsSeleccionados.includes(e.id)}
                             onClick={(id, multi) => {
+                                if (!isSelectable(e.layer)) return;
                                 if (herramienta === 'select') {
+                                    saveHistory()
                                     seleccionar(id, multi)
                                     moviendo.current = true
                                     posInicioMover.current = getPunto({ clientX: ultimaPosicion.current.x, clientY: ultimaPosicion.current.y } as any)
@@ -543,12 +614,14 @@ export default function CanvasEditor() {
                     ))}
 
                     {/* Ventanas */}
-                    {ventanas.map((v) => (
+                    {ventanasV.map((v) => (
                         <ElementoVentana key={v.id} ventana={v}
                             zoom={zoom} panX={panX} panY={panY}
                             seleccionado={idsSeleccionados.includes(v.id)}
                             onClick={(id, multi) => {
+                                if (!isSelectable(v.layer)) return;
                                 if (herramienta === 'select') {
+                                    saveHistory()
                                     seleccionar(id, multi)
                                     moviendo.current = true
                                     posInicioMover.current = getPunto({ clientX: ultimaPosicion.current.x, clientY: ultimaPosicion.current.y } as any)

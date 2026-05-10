@@ -192,7 +192,7 @@ export default function PanelChat() {
     }
 
     return (
-        <div className="w-72 bg-gray-900 border-l border-gray-800 flex flex-col">
+        <div className="h-full flex flex-col bg-gray-900">
 
             {/* Header con selector de modelo */}
             <div className="px-4 py-3 border-b border-gray-800">

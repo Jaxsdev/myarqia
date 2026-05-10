@@ -7,7 +7,11 @@ const INTERVALO_MS = 3000 // guardar cada 3 segundos si hay cambios
 
 export function useGuardadoAutomatico() {
     const { proyectoActual } = useProyectoStore()
-    const { muros, puertas, ventanas } = usePlanoStore()
+    const { 
+        muros, puertas, ventanas, escaleras, columnas, 
+        cotas, textos, areas, ambientes, capas, cargado,
+        historial
+    } = usePlanoStore()
     const ultimoGuardado = useRef<string>('')
     const [guardando, setGuardando] = useState(false)
     const [ultimaVez, setUltimaVez] = useState<Date | null>(null)
@@ -24,16 +28,23 @@ export function useGuardadoAutomatico() {
     }
 
     const guardar = async () => {
-        if (!proyectoActual) return
+        if (!proyectoActual || !cargado) return
 
-        const estadoActual = JSON.stringify({ muros, puertas, ventanas })
+        const estadoActual = JSON.stringify({ 
+            muros, puertas, ventanas, escaleras, columnas, 
+            cotas, textos, areas, ambientes, capas, historial
+        })
         if (estadoActual === ultimoGuardado.current) return
 
         setGuardando(true)
         const { error } = await supabase
             .from('proyectos')
             .update({
-                datos: { muros, puertas, ventanas, escala: 100, unidad: 'metros' },
+                datos: { 
+                    muros, puertas, ventanas, escaleras, columnas, 
+                    cotas, textos, areas, ambientes, capas, historial,
+                    escala: 100, unidad: 'metros' 
+                },
             })
             .eq('id', proyectoActual.id)
 
@@ -48,7 +59,7 @@ export function useGuardadoAutomatico() {
     useEffect(() => {
         const intervalo = setInterval(guardar, INTERVALO_MS)
         return () => clearInterval(intervalo)
-    }, [proyectoActual, muros, puertas, ventanas])
+    }, [proyectoActual, muros, puertas, ventanas, escaleras, columnas, cotas, textos, areas, ambientes, capas, historial])
 
     return { guardando, ultimaVez, forzarGuardado: guardar }
 }

@@ -4,14 +4,13 @@ import { supabase } from '../lib/supabase'
 import CanvasEditor from '../components/editor/CanvasEditor'
 import ToolsSidebar from '../components/editor/ToolsSidebar'
 import HUD from '../components/editor/HUD'
-import PanelPropiedades from '../components/editor/PanelPropiedades'
+import LeftPanel from '../components/editor/LeftPanel'
+import RightPanel from '../components/editor/RightPanel'
 import { useProyectoStore } from '../store/useProyectoStore'
 import { usePlanoStore } from '../store/usePlanoStore'
 import { useGuardadoAutomatico } from '../hooks/useGuardadoAutomatico'
 import type { Proyecto } from '../types'
-import PanelChat from '../components/chat/PanelChat'
 import { useExportarPDF } from '../hooks/useExportarPDF'
-import PanelRNE from '../components/editor/PanelRNE'
 import { descargarDXF } from '../lib/exportarDXF'
 import TopBar from '../components/editor/TopBar'
 import ContextBar from '../components/editor/ContextBar'
@@ -39,6 +38,14 @@ export default function Editor() {
                     datos.muros || [],
                     datos.puertas || [],
                     datos.ventanas || [],
+                    datos.escaleras || [],
+                    datos.columnas || [],
+                    datos.cotas || [],
+                    datos.textos || [],
+                    datos.areas || [],
+                    datos.ambientes || [],
+                    datos.capas || [],
+                    datos.historial || [],
                 )
             }
             setCargando(false)
@@ -62,16 +69,15 @@ export default function Editor() {
 
             {/* Área principal */}
             <div className="flex flex-1 overflow-hidden">
+                <LeftPanel />
                 <ToolsSidebar />
-                <div className="flex flex-col flex-1 overflow-hidden">
+                <div className="flex flex-col flex-1 overflow-hidden relative">
                     <div className="flex-1 overflow-hidden">
                         <CanvasEditor />
                     </div>
                     <HUD />
                 </div>
-                <PanelPropiedades />
-                <PanelChat />
-                <PanelRNE />
+                <RightPanel />
             </div>
         </div>
     )

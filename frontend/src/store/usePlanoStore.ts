@@ -15,6 +15,24 @@ const uid = (p: string) => `${p}-${contador++}`
 
 type TipoDibujo = 'muro' | 'puerta' | 'ventana' | 'escalera' | 'columna' | 'cota' | 'area'
 
+export interface Capa {
+    id: string
+    name: string
+    color: string
+    thickness: string
+    desc: string
+    visible: boolean
+    locked: boolean
+}
+
+export interface EntradaHistorial {
+    id: string
+    tipo: 'creacion' | 'edicion' | 'borrado' | 'ia' | 'sistema' | 'ajuste'
+    descripcion: string
+    timestamp: string
+    estado: any
+}
+
 interface PlanoState {
 
     ambientes: AmbienteIA[]
@@ -29,6 +47,14 @@ interface PlanoState {
     textos: ElementoTexto[]
     areas: ElementoArea[]
 
+    // Capas
+    capas: Capa[]
+    capaActiva: string
+    toggleCapaVisible: (id: string) => void
+    toggleCapaBloqueada: (id: string) => void
+    setCapaActiva: (id: string) => void
+    agregarCapa: (id: string, color: string) => void
+
 
     // Dibujo en progreso
     dibujando: boolean
@@ -41,6 +67,11 @@ interface PlanoState {
 
     // Selección
     idsSeleccionados: string[]
+    cargado: boolean
+
+    // Historial
+    historial: EntradaHistorial[]
+    futureHistorial: EntradaHistorial[]
 
     // Acciones — Muro
     iniciarDibujo: (p: Punto, tipo: TipoDibujo) => void
@@ -61,11 +92,18 @@ interface PlanoState {
     moverSeleccion: (dx: number, dy: number) => void
     togglePuertaSentido: (id: string) => void
 
+    // Historial
+    saveHistory: (descripcion?: string, tipo?: EntradaHistorial['tipo']) => void
+    undo: () => void
+    redo: () => void
+    irAEstado: (id: string) => void
+
     // Cargar desde Supabase
-    cargarDatos: (muros: Muro[], puertas: Puerta[], ventanas: Ventana[]) => void
+    cargarDatos: (muros: Muro[], puertas: Puerta[], ventanas: Ventana[], escaleras?: Escalera[], columnas?: Columna[], cotas?: Cota[], textos?: ElementoTexto[], areas?: ElementoArea[], ambientes?: AmbienteIA[], capas?: Capa[], historial?: EntradaHistorial[]) => void
     limpiarTodo: () => void
 
     actualizarMuro: (id: string, cambios: Partial<Muro>) => void
+    actualizarArea: (id: string, cambios: Partial<ElementoArea>) => void
     actualizarPuerta: (id: string, cambios: Partial<Puerta>) => void
     actualizarVentana: (id: string, cambios: Partial<Ventana>) => void
     actualizarColumna: (id: string, cambios: Partial<Columna>) => void
@@ -93,6 +131,99 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
     puntosPoligono: [],
     pasoDibujo: 0,
     idsSeleccionados: [],
+    cargado: false,
+
+    past: [],
+    future: [],
+
+    capas: [
+        { id: 'A-WALL', name: 'A-WALL', color: '#E8ECF0', thickness: '0.5mm', desc: 'Muros, tabiques y divisiones', visible: true, locked: false },
+        { id: 'A-DOOR', name: 'A-DOOR', color: '#F39C12', thickness: '0.35mm', desc: 'Puertas con arco de apertura', visible: true, locked: false },
+        { id: 'A-WIND', name: 'A-WIND', color: '#00C8D4', thickness: '0.35mm', desc: 'Ventanas con línea triple', visible: true, locked: false },
+        { id: 'A-STAIR', name: 'A-STAIR', color: '#9B59B6', thickness: '0.18mm', desc: 'Escaleras y rampas', visible: true, locked: false },
+        { id: 'A-AREA', name: 'A-AREA', color: '#9B59B6', thickness: '0.18mm', desc: 'Etiquetas de ambientes y área', visible: true, locked: false },
+        { id: 'A-DIM', name: 'A-DIM', color: '#2D8EFF', thickness: '0.18mm', desc: 'Líneas de cota, flechas y valores', visible: true, locked: false },
+        { id: 'A-ANNO-TEXT', name: 'A-ANNO-TEXT', color: '#2ECC71', thickness: '0.18mm', desc: 'Notas técnicas y texto libre', visible: true, locked: false },
+        { id: 'A-STRUCT', name: 'A-STRUCT', color: '#E74C3C', thickness: '0.7mm', desc: 'Columnas, vigas y elementos estructurales', visible: true, locked: false },
+        { id: 'A-EQPM', name: 'A-EQPM', color: '#8892A0', thickness: '0.25mm', desc: 'Mobiliario y equipamiento', visible: true, locked: false },
+        { id: 'A-GRID', name: 'A-GRID', color: '#2A3045', thickness: '0.13mm', desc: 'Ejes de referencia', visible: true, locked: false },
+        { id: 'A-SITE', name: 'A-SITE', color: '#795548', thickness: '0.5mm', desc: 'Linderos, límite de propiedad', visible: true, locked: false },
+    ],
+    capaActiva: 'A-WALL',
+
+    historial: [],
+    futureHistorial: [],
+
+    toggleCapaVisible: (id) => set((s) => ({
+        capas: s.capas.map(c => c.id === id ? { ...c, visible: !c.visible } : c)
+    })),
+    toggleCapaBloqueada: (id) => set((s) => ({
+        capas: s.capas.map(c => c.id === id ? { ...c, locked: !c.locked } : c)
+    })),
+    setCapaActiva: (id) => set({ capaActiva: id }),
+    agregarCapa: (id, color) => set((s) => {
+        if (s.capas.find(c => c.id === id)) return s
+        return {
+            capas: [...s.capas, { id, name: id, color, thickness: '0.25mm', desc: 'Capa personalizada', visible: true, locked: false }],
+            capaActiva: id
+        }
+    }),
+
+    saveHistory: (descripcion = 'Operación', tipo = 'edicion') => {
+        const s = get()
+        const snapshot = {
+            muros: [...s.muros], puertas: [...s.puertas], ventanas: [...s.ventanas],
+            escaleras: [...s.escaleras], columnas: [...s.columnas], cotas: [...s.cotas],
+            textos: [...s.textos], areas: [...s.areas], ambientes: [...s.ambientes],
+        }
+        const entrada: EntradaHistorial = {
+            id: uid('hist'),
+            tipo,
+            descripcion,
+            timestamp: new Date().toISOString(),
+            estado: snapshot
+        }
+        set({ historial: [...s.historial.slice(-49), entrada], futureHistorial: [] })
+    },
+
+    undo: () => {
+        const { historial, futureHistorial } = get()
+        if (historial.length <= 1) return
+        const last = historial[historial.length - 1]
+        const previous = historial[historial.length - 2]
+        
+        set({ 
+            ...previous.estado, 
+            historial: historial.slice(0, -1), 
+            futureHistorial: [last, ...futureHistorial],
+            idsSeleccionados: [] 
+        })
+    },
+
+    redo: () => {
+        const { historial, futureHistorial } = get()
+        if (futureHistorial.length === 0) return
+        const next = futureHistorial[0]
+        set({ 
+            ...next.estado, 
+            historial: [...historial, next], 
+            futureHistorial: futureHistorial.slice(1),
+            idsSeleccionados: [] 
+        })
+    },
+
+    irAEstado: (id) => {
+        const { historial } = get()
+        const index = historial.findIndex(h => h.id === id)
+        if (index === -1) return
+        const entrada = historial[index]
+        set({ 
+            ...entrada.estado, 
+            historial: historial.slice(0, index + 1),
+            futureHistorial: [],
+            idsSeleccionados: []
+        })
+    },
 
     iniciarDibujo: (p, tipo) => set({
         dibujando: true, tipoDibujo: tipo,
@@ -133,8 +264,11 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
             altura: 2.80,
             alturaBase: 0,
             material: 'concreto' as const,
-            layer: 'A-WALL',
+            layer: get().capaActiva,
         }
+
+        const longitud = Math.sqrt(dx * dx + dy * dy)
+        get().saveHistory(`Muro dibujado (${longitud.toFixed(2)}m)`, 'creacion')
 
         set((s) => ({
             muros: [...s.muros, nuevoMuro],
@@ -182,6 +316,8 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
             ang = anguloMuro
         }
 
+        get().saveHistory(`Puerta insertada (${dist.toFixed(2)}m)`, 'creacion')
+
         set((s) => ({
             puertas: [...s.puertas, {
                 id: uid('puerta'),
@@ -189,13 +325,14 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
                 x: pIn.x, y: pIn.y,
                 ancho: dist,
                 angulo_apertura: ang,
-                layer: 'A-DOOR',
+                layer: get().capaActiva,
             }],
             dibujando: false, puntoInicio: null, puntoFin: null,
         }))
     },
 
     togglePuertaSentido: (id: string) => {
+        get().saveHistory(`Sentido de puerta cambiado`, 'edicion')
         set((s) => ({
             puertas: s.puertas.map(p => {
                 if (p.id !== id) return p
@@ -242,6 +379,8 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
             ang = anguloMuro
         }
 
+        get().saveHistory(`Ventana insertada (${dist.toFixed(2)}m)`, 'creacion')
+
         set((s) => ({
             ventanas: [...s.ventanas, {
                 id: uid('ventana'),
@@ -249,7 +388,7 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
                 x: pIn.x, y: pIn.y,
                 ancho: dist,
                 angulo: ang,
-                layer: 'A-WIND',
+                layer: get().capaActiva,
             }],
             dibujando: false, puntoInicio: null, puntoFin: null,
         }))
@@ -258,13 +397,14 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
     terminarEscalera: (peldaños = 15, paso = 0.25, contrapaso = 0.175) => {
         const { puntoInicio, puntoFin } = get()
         if (!puntoInicio || !puntoFin) return
+        get().saveHistory(`Escalera creada (${peldaños} escalones)`, 'creacion')
         set((s) => ({
             escaleras: [...(s.escaleras || []), {
                 id: uid('escalera'),
                 x1: puntoInicio.x, y1: puntoInicio.y,
                 x2: puntoFin.x, y2: puntoFin.y,
                 peldaños, paso, contrapaso,
-                layer: 'A-STAIR',
+                layer: get().capaActiva,
             }],
             dibujando: false, puntoInicio: null, puntoFin: null,
         }))
@@ -274,12 +414,13 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
         const { puntoInicio } = get()
         const p = pManual || puntoInicio
         if (!p) return
+        get().saveHistory(`Columna insertada (${ancho}x${largo}m)`, 'creacion')
         set((s) => ({
             columnas: [...(s.columnas || []), {
                 id: uid('columna'),
                 x: p.x, y: p.y,
                 ancho, largo, forma,
-                layer: 'A-STRUCT',
+                layer: get().capaActiva,
             }],
             dibujando: false, puntoInicio: null, puntoFin: null,
         }))
@@ -317,13 +458,15 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
             const v3y = p3.y - puntoInicio.y
             const offset = v3x * nx + v3y * ny
 
+            get().saveHistory(`Cota agregada (${dist.toFixed(2)}m)`, 'creacion')
+
             set((s) => ({
                 cotas: [...(s.cotas || []), {
                     id: uid('cota'),
                     x1: puntoInicio.x, y1: puntoInicio.y,
                     x2: puntoFin.x, y2: puntoFin.y,
                     offset,
-                    layer: 'A-DIM',
+                    layer: get().capaActiva,
                 }],
                 dibujando: false, puntoInicio: null, puntoFin: null, puntoAux: null, pasoDibujo: 0
             }))
@@ -357,6 +500,8 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
         if (idsSeleccionados.length === 0) return
         
         if (!window.confirm(`¿Eliminar ${idsSeleccionados.length} elemento(s)?`)) return
+
+        get().saveHistory(`Eliminado (${idsSeleccionados.length} elementos)`, 'borrado')
 
         set((s) => ({
             muros: s.muros.filter((m) => !idsSeleccionados.includes(m.id)),
@@ -400,13 +545,30 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
         }))
     },
 
-    cargarDatos: (muros, puertas, ventanas) => set({ muros, puertas, ventanas }),
+    cargarDatos: (muros, puertas, ventanas, escaleras = [], columnas = [], cotas = [], textos = [], areas = [], ambientes = [], capas = [], historial = []) => set((state) => ({ 
+        muros, 
+        puertas, 
+        ventanas, 
+        escaleras, 
+        columnas, 
+        cotas, 
+        textos, 
+        areas, 
+        ambientes, 
+        capas: capas.length > 0 ? capas : state.capas,
+        historial: historial.length > 0 ? historial : (state.historial.length > 0 ? state.historial : []),
+        cargado: true
+    })),
 
     actualizarMuro: (id, cambios) =>
         set((s) => ({
             muros: s.muros.map((m) => m.id === id ? { ...m, ...cambios } : m)
         })),
 
+    actualizarArea: (id, cambios) =>
+        set((s) => ({
+            areas: s.areas.map((a) => (a.id === id ? { ...a, ...cambios } : a)),
+        })),
     actualizarPuerta: (id, cambios) =>
         set((s) => ({
             puertas: s.puertas.map((p) => p.id === id ? { ...p, ...cambios } : p)
@@ -525,12 +687,13 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
         const { puntoInicio } = get()
         const p = pManual || puntoInicio
         if (!p) return
+        get().saveHistory(`Texto: "${contenido}"`, 'creacion')
         set((s) => ({
             textos: [...s.textos, {
                 id: uid('texto'),
                 x: p.x, y: p.y,
                 contenido, fontSize, color,
-                layer: 'A-ANNO-TEXT',
+                layer: get().capaActiva,
             }],
             dibujando: false, puntoInicio: null, puntoFin: null,
         }))
@@ -552,12 +715,14 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
         }
         area = Math.abs(area) / 2
 
+        get().saveHistory(`Área definida (${area.toFixed(2)}m²)`, 'creacion')
+
         set((s) => ({
             areas: [...s.areas, {
                 id: uid('area'),
                 puntos: [...puntosPoligono],
                 area,
-                layer: 'A-AREA',
+                layer: get().capaActiva,
             }],
             dibujando: false, puntosPoligono: [], puntoInicio: null, puntoFin: null,
         }))
