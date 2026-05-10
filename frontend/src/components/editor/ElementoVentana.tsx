@@ -25,7 +25,7 @@ export default function ElementoVentana({
     const cx = ws(ventana.x, panX, zoom)
     const cy = ws(ventana.y, panY, zoom)
     const anchoPx = ventana.ancho * PX * zoom
-    const angGrados = ventana.angulo * (180 / Math.PI)
+    const rotGrados = ventana.rotacion * (180 / Math.PI)
 
     // Grosor visual de la ventana (10cm)
     const grosorPx = 0.10 * PX * zoom
@@ -34,7 +34,7 @@ export default function ElementoVentana({
     return (
         <Group
             onClick={(e) => onClick(ventana.id, e.evt.shiftKey)}
-            rotation={angGrados}
+            rotation={rotGrados}
             x={cx} y={cy}
         >
             {/* Línea exterior (marco) */}

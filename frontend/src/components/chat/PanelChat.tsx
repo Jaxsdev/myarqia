@@ -43,10 +43,11 @@ function procesarRespuestaIA(texto: string) {
                         y1: safeNum(m.y1, 0),
                         x2: safeNum(m.x2, 0),
                         y2: safeNum(m.y2, 0),
-                        espesor: safeNum(m.espesor, 0.25),
-                        altura: safeNum(m.altura, 2.80),
-                        alturaBase: safeNum(m.alturaBase, 0),
-                        material: ['concreto', 'ladrillo', 'tabique', 'drywall'].includes(m.material) ? m.material : 'concreto',
+                        espesor: safeNum(m.espesor, 0.15),
+                        altura: safeNum(m.altura, 2.40),
+                        tipo: m.tipo || 'simple',
+                        material: m.material || 'ladrillo',
+                        alineacion: m.alineacion || 'centro',
                         layer: 'A-WALL' as const,
                     }]
                 }))
@@ -60,8 +61,11 @@ function procesarRespuestaIA(texto: string) {
                         muro_id: '',
                         x: safeNum(p.x, 0),
                         y: safeNum(p.y, 0),
+                        rotacion: safeNum(p.rotacion, 0),
                         ancho: safeNum(p.ancho, 0.90),
-                        angulo_apertura: safeNum(p.angulo, 0),
+                        sentido: p.sentido || 'derecha',
+                        angulo: safeNum(p.angulo, 90),
+                        tipo: p.tipo || 'simple',
                         layer: 'A-DOOR' as const,
                     }]
                 }))
@@ -75,8 +79,11 @@ function procesarRespuestaIA(texto: string) {
                         muro_id: '',
                         x: safeNum(v.x, 0),
                         y: safeNum(v.y, 0),
+                        rotacion: safeNum(v.rotacion, 0),
                         ancho: safeNum(v.ancho, 1.20),
-                        angulo: safeNum(v.angulo, 0),
+                        alto: safeNum(v.alto, 1.20),
+                        alfeizar: safeNum(v.alfeizar, 0.90),
+                        tipo: v.tipo || 'corredera',
                         layer: 'A-WIND' as const,
                     }]
                 }))

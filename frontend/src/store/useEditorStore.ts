@@ -5,7 +5,8 @@ export type Vista = '2d' | '3d' | 'planos'
 
 interface ToolProperties {
     muro: {
-        grosor: number
+        espesor: number
+        tipo: 'simple' | 'doble' | 'con-aislamiento'
         material: string
         altura: number
         alineacion: 'izquierda' | 'centro' | 'derecha'
@@ -14,26 +15,41 @@ interface ToolProperties {
         ancho: number
         sentido: 'izquierda' | 'derecha'
         angulo: number
+        tipo: 'simple' | 'doble' | 'corredera' | 'vaivén'
     }
     ventana: {
         ancho: number
         alto: number
         alfeizar: number
+        tipo: 'fija' | 'batiente' | 'corredera' | 'vidrio-piso-techo'
     }
     escalera: {
+        ancho: number
         peldaños: number
         paso: number
         contrapaso: number
+        direccion: 'sube' | 'baja'
     }
     columna: {
-        ancho: number
-        largo: number
         forma: 'cuadrada' | 'circular'
+        dimension: number
+        material: 'concreto' | 'acero' | 'madera'
+    }
+    dim: {
+        tipo: 'lineal' | 'angular' | 'radial' | 'libre'
+        offset: number
+        mostrarUnidades: boolean
+        decimales: 0 | 1 | 2
+        estilo: 'RNE' | 'ISO' | 'libre'
     }
     texto: {
         fontSize: number
-        color: string
-        bold: boolean
+        estilo: 'normal' | 'título' | 'nota'
+        capa: string
+    }
+    select: {
+        modo: 'individual' | 'caja' | 'lazo'
+        filtro: 'todos' | 'muros' | 'puertas' | 'ventanas' | 'cotas' | 'texto'
     }
 }
 
@@ -84,7 +100,9 @@ interface EditorState {
     setPropiedadVentana: (p: Partial<ToolProperties['ventana']>) => void
     setPropiedadEscalera: (p: Partial<ToolProperties['escalera']>) => void
     setPropiedadColumna: (p: Partial<ToolProperties['columna']>) => void
+    setPropiedadDim: (p: Partial<ToolProperties['dim']>) => void
     setPropiedadTexto: (p: Partial<ToolProperties['texto']>) => void
+    setPropiedadSelect: (p: Partial<ToolProperties['select']>) => void
 
     // Modo visual
     modoClaro: boolean
@@ -128,7 +146,8 @@ export const useEditorStore = create<EditorState>((set) => ({
 
     propiedades: {
         muro: {
-            grosor: 0.15,
+            espesor: 0.15,
+            tipo: 'simple',
             material: 'ladrillo',
             altura: 2.40,
             alineacion: 'centro'
@@ -136,27 +155,42 @@ export const useEditorStore = create<EditorState>((set) => ({
         puerta: {
             ancho: 0.90,
             sentido: 'derecha',
-            angulo: 90
+            angulo: 90,
+            tipo: 'simple'
         },
         ventana: {
             ancho: 1.20,
             alto: 1.20,
-            alfeizar: 0.90
+            alfeizar: 0.90,
+            tipo: 'corredera'
         },
         escalera: {
+            ancho: 1.00,
             peldaños: 15,
             paso: 0.25,
-            contrapaso: 0.175
+            contrapaso: 0.175,
+            direccion: 'sube'
         },
         columna: {
-            ancho: 0.30,
-            largo: 0.30,
-            forma: 'cuadrada'
+            forma: 'cuadrada',
+            dimension: 0.30,
+            material: 'concreto'
+        },
+        dim: {
+            tipo: 'lineal',
+            offset: 0.50,
+            mostrarUnidades: true,
+            decimales: 2,
+            estilo: 'RNE'
         },
         texto: {
-            fontSize: 0.18, // 18cm en metros
-            color: '#1a1a1a',
-            bold: false
+            fontSize: 0.18,
+            estilo: 'normal',
+            capa: 'A-ANNO-TEXT'
+        },
+        select: {
+            modo: 'individual',
+            filtro: 'todos'
         }
     },
     setPropiedadMuro: (p) => set((s) => ({ 
@@ -174,8 +208,14 @@ export const useEditorStore = create<EditorState>((set) => ({
     setPropiedadColumna: (p) => set((s) => ({ 
         propiedades: { ...s.propiedades, columna: { ...s.propiedades.columna, ...p } } 
     })),
+    setPropiedadDim: (p) => set((s) => ({ 
+        propiedades: { ...s.propiedades, dim: { ...s.propiedades.dim, ...p } } 
+    })),
     setPropiedadTexto: (p) => set((s) => ({ 
         propiedades: { ...s.propiedades, texto: { ...s.propiedades.texto, ...p } } 
+    })),
+    setPropiedadSelect: (p) => set((s) => ({ 
+        propiedades: { ...s.propiedades, select: { ...s.propiedades.select, ...p } } 
     })),
 
     modoClaro: false,

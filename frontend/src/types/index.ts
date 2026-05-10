@@ -35,10 +35,11 @@ export interface Muro {
     x2: number
     y2: number
     espesor: number
-    // Propiedades arquitectónicas (igual que AutoCAD Architecture)
-    altura: number          // altura libre del muro en metros (default 2.80)
-    alturaBase: number      // offset desde el piso en metros (default 0)
-    material: 'concreto' | 'ladrillo' | 'tabique' | 'drywall'
+    // Propiedades arquitectónicas
+    altura: number
+    tipo: 'simple' | 'doble' | 'con-aislamiento'
+    material: string
+    alineacion: 'izquierda' | 'centro' | 'derecha'
     layer: string
 }
 
@@ -47,8 +48,11 @@ export interface Puerta {
     muro_id: string
     x: number
     y: number
+    rotacion: number
     ancho: number
-    angulo_apertura: number
+    sentido: 'izquierda' | 'derecha'
+    angulo: number
+    tipo: 'simple' | 'doble' | 'corredera' | 'vaivén'
     layer: string
 }
 
@@ -57,8 +61,11 @@ export interface Ventana {
     muro_id: string
     x: number
     y: number
+    rotacion: number
     ancho: number
-    angulo: number
+    alto: number
+    alfeizar: number
+    tipo: 'fija' | 'batiente' | 'corredera' | 'vidrio-piso-techo'
     layer: string
 }
 
@@ -68,10 +75,11 @@ export interface Escalera {
     y1: number
     x2: number
     y2: number
-    anchoMuro?: number // ancho de la escalera
+    ancho: number
     peldaños: number
     paso: number
     contrapaso: number
+    direccion: 'sube' | 'baja'
     layer: string
 }
 
@@ -79,10 +87,9 @@ export interface Columna {
     id: string
     x: number
     y: number
-    ancho: number
-    largo: number
     forma: 'cuadrada' | 'circular'
-    radio?: number
+    dimension: number
+    material: 'concreto' | 'acero' | 'madera'
     layer: string
 }
 
@@ -92,8 +99,12 @@ export interface Cota {
     y1: number
     x2: number
     y2: number
-    offset: number // Distancia de la línea de cota respecto a los puntos
+    offset: number
     valorManual?: number
+    tipo: 'lineal' | 'angular' | 'radial' | 'libre'
+    mostrarUnidades: boolean
+    decimales: 0 | 1 | 2
+    estilo: 'RNE' | 'ISO' | 'libre'
     layer: string
 }
 
@@ -104,6 +115,7 @@ export interface ElementoTexto {
     contenido: string
     fontSize: number
     color: string
+    estilo: 'normal' | 'título' | 'nota'
     bold?: boolean
     italic?: boolean
     layer: string

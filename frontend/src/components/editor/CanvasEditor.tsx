@@ -279,33 +279,33 @@ export default function CanvasEditor() {
 
             if (herramienta === 'wall') {
                 if (!dibujando) iniciarDibujo(p, 'muro')
-                else terminarMuro(propiedades.muro.grosor, true)
+                else terminarMuro(propiedades.muro, true)
             }
             if (herramienta === 'door') {
-                terminarPuerta(propiedades.puerta.ancho, propiedades.puerta.sentido, propiedades.puerta.angulo, p)
+                terminarPuerta(propiedades.puerta, p)
                 return
             }
             if (herramienta === 'window') {
-                terminarVentana(propiedades.ventana.ancho, propiedades.ventana.alto, propiedades.ventana.alfeizar, p)
+                terminarVentana(propiedades.ventana, p)
                 return
             }
             if (herramienta === 'stair') {
                 if (!dibujando) iniciarDibujo(p, 'escalera')
-                else terminarEscalera(propiedades.escalera.peldaños, propiedades.escalera.paso, propiedades.escalera.contrapaso)
+                else terminarEscalera(propiedades.escalera)
             }
             if (herramienta === 'column') {
-                terminarColumna(propiedades.columna.ancho, propiedades.columna.largo, propiedades.columna.forma as 'cuadrada' | 'circular', p)
+                terminarColumna(propiedades.columna, p)
                 return
             }
             if (herramienta === 'dim') {
                 if (!dibujando) iniciarDibujo(p, 'cota')
-                else terminarCota(p)
+                else terminarCota(propiedades.dim, p)
                 return
             }
             if (herramienta === 'text') {
                 const contenido = prompt("Ingresa el texto:")
                 if (contenido !== null && contenido !== "") {
-                    terminarTexto(contenido, propiedades.texto.fontSize, propiedades.texto.color, p)
+                    terminarTexto(contenido, propiedades.texto, p)
                 }
                 return
             }
@@ -378,7 +378,7 @@ export default function CanvasEditor() {
             onContextMenu={handleContextMenu}
             onDoubleClick={() => {
                 if (herramienta === 'wall' && dibujando) {
-                    terminarMuro(propiedades.muro.grosor, false)
+                    terminarMuro(propiedades.muro, false)
                 }
                 if (herramienta === 'area' && dibujando) {
                     terminarArea()
@@ -635,8 +635,8 @@ export default function CanvasEditor() {
                         <PreviewGhost
                             x={cursorX} y={cursorY}
                             tipo={herramienta as any}
-                            ancho={herramienta === 'column' ? propiedades.columna.ancho : (herramienta === 'door' ? propiedades.puerta.ancho : propiedades.ventana.ancho)}
-                            largo={herramienta === 'column' ? propiedades.columna.largo : undefined}
+                            ancho={(herramienta === 'door' ? propiedades.puerta.ancho : propiedades.ventana.ancho)}
+                            dimension={herramienta === 'column' ? propiedades.columna.dimension : undefined}
                             forma={herramienta === 'column' ? propiedades.columna.forma : undefined}
                             muros={muros}
                             zoom={zoom} panX={panX} panY={panY}
@@ -646,7 +646,7 @@ export default function CanvasEditor() {
                     {/* Preview muro */}
                     {dibujando && tipoDibujo === 'muro' && puntoInicio && puntoFin && (
                         <PreviewMuro inicio={puntoInicio} fin={puntoFin}
-                            espesor={propiedades.muro.grosor} zoom={zoom} panX={panX} panY={panY} />
+                            espesor={propiedades.muro.espesor} zoom={zoom} panX={panX} panY={panY} />
                     )}
 
                     {/* Preview Polígono de Área */}
