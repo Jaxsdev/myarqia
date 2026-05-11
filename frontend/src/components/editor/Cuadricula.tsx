@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react'
 import { Line } from 'react-konva'
 import { TEMA_CLARO, TEMA_OSCURO } from '../../lib/temas'
 
@@ -15,7 +16,7 @@ const PX_POR_METRO = 100
 
 export default function Cuadricula({ zoom, panX, panY, width, height, modoClaro }: Props) {
     const tema = modoClaro ? TEMA_CLARO : TEMA_OSCURO
-    const lineas: React.ReactElement[] = []
+    const lineas: ReactElement[] = []
 
     const paso1m = PX_POR_METRO * zoom        // línea cada 1 metro
     const paso25cm = PX_POR_METRO * zoom * 0.25 // línea cada 25cm

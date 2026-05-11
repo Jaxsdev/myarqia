@@ -16,6 +16,12 @@ const MODELOS = [
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
 
 
+// Sanitiza un valor numérico de la IA, devolviendo el fallback si es NaN/Infinity
+function safeNum(v: unknown, fallback: number): number {
+    const n = Number(v)
+    return Number.isFinite(n) ? n : fallback
+}
+
 // Convierte la respuesta JSON de la IA en muros para el canvas
 function procesarRespuestaIA(texto: string) {
     try {
@@ -61,14 +67,15 @@ function procesarRespuestaIA(texto: string) {
                 usePlanoStore.setState((s) => ({
                     muros: [...s.muros, {
                         id: `muro-ia-${i}-${Date.now()}`,
-                        x1: Number(m.x1),
-                        y1: Number(m.y1),
-                        x2: Number(m.x2),
-                        y2: Number(m.y2),
-                        espesor: Number(m.espesor) || 0.25,
-                        altura: 2.80,
-                        alturaBase: 0,
-                        material: 'concreto' as const,
+                        x1: safeNum(m.x1, 0),
+                        y1: safeNum(m.y1, 0),
+                        x2: safeNum(m.x2, 0),
+                        y2: safeNum(m.y2, 0),
+                        espesor: safeNum(m.espesor, 0.15),
+                        altura: safeNum(m.altura, 2.40),
+                        tipo: m.tipo || 'simple',
+                        material: m.material || 'ladrillo',
+                        alineacion: m.alineacion || 'centro',
                         layer: 'A-WALL' as const,
                     }]
                 }))
@@ -80,10 +87,13 @@ function procesarRespuestaIA(texto: string) {
                     puertas: [...s.puertas, {
                         id: `puerta-ia-${i}-${Date.now()}`,
                         muro_id: '',
-                        x: Number(p.x),
-                        y: Number(p.y),
-                        ancho: Number(p.ancho) || 0.90,
-                        angulo_apertura: Number(p.angulo) || 0,
+                        x: safeNum(p.x, 0),
+                        y: safeNum(p.y, 0),
+                        rotacion: safeNum(p.rotacion, 0),
+                        ancho: safeNum(p.ancho, 0.90),
+                        sentido: p.sentido || 'derecha',
+                        angulo: safeNum(p.angulo, 90),
+                        tipo: p.tipo || 'simple',
                         layer: 'A-DOOR' as const,
                     }]
                 }))
@@ -95,10 +105,13 @@ function procesarRespuestaIA(texto: string) {
                     ventanas: [...s.ventanas, {
                         id: `ventana-ia-${i}-${Date.now()}`,
                         muro_id: '',
-                        x: Number(v.x),
-                        y: Number(v.y),
-                        ancho: Number(v.ancho) || 1.20,
-                        angulo: Number(v.angulo) || 0,
+                        x: safeNum(v.x, 0),
+                        y: safeNum(v.y, 0),
+                        rotacion: safeNum(v.rotacion, 0),
+                        ancho: safeNum(v.ancho, 1.20),
+                        alto: safeNum(v.alto, 1.20),
+                        alfeizar: safeNum(v.alfeizar, 0.90),
+                        tipo: v.tipo || 'corredera',
                         layer: 'A-WIND' as const,
                     }]
                 }))
@@ -189,7 +202,7 @@ export default function PanelChat() {
         setCargando(true)
 
         const historial = [...mensajes, msgUsuario]
-            .filter((m) => m.rol !== 'ia' || mensajes.indexOf(m) > 0)
+            .slice(1)  // Excluir mensaje de bienvenida (primer mensaje IA)
             .map((m) => ({
                 role: m.rol === 'usuario' ? 'user' : 'assistant',
                 content: m.contenido,

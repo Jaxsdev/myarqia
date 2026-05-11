@@ -1,7 +1,5 @@
-import React from 'react'
 import { Group, Line, Arrow, Rect } from 'react-konva'
 import type { Escalera } from '../../types'
-import { TEMA_CLARO, TEMA_OSCURO } from '../../lib/temas'
 
 interface Props {
     escalera: Escalera
@@ -20,9 +18,9 @@ function ws(m: number, pan: number, zoom: number) {
 }
 
 export default function ElementoEscalera({
-    escalera, zoom, panX, panY, seleccionado, onClick, modoClaro
+    escalera, zoom, panX, panY, seleccionado, onClick
 }: Props) {
-    const tema = modoClaro ? TEMA_CLARO : TEMA_OSCURO
+
     
     const x1 = ws(escalera.x1, panX, zoom)
     const y1 = ws(escalera.y1, panY, zoom)
@@ -41,7 +39,7 @@ export default function ElementoEscalera({
     // Por ahora asumimos que el arrastre define el largo. 
     // El ancho podría ser una propiedad o definido por el arrastre lateral.
     // Para simplificar, usaremos un ancho default de 1 metro si no se especifica.
-    const anchoPx = (escalera.anchoMuro || 1.0) * PX * zoom
+    const anchoPx = (escalera.ancho || 1.0) * PX * zoom
 
     // Dibujar los peldaños
     const lineas = []
@@ -76,9 +74,9 @@ export default function ElementoEscalera({
             {/* Peldaños */}
             {lineas}
 
-            {/* Flecha de subida */}
+            {/* Flecha de dirección */}
             <Arrow
-                points={[dist * 0.1, 0, dist * 0.9, 0]}
+                points={escalera.direccion === 'sube' ? [dist * 0.1, 0, dist * 0.9, 0] : [dist * 0.9, 0, dist * 0.1, 0]}
                 pointerLength={10 * zoom}
                 pointerWidth={8 * zoom}
                 fill={color}

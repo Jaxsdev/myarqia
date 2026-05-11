@@ -21,10 +21,10 @@ export default function RightPanel() {
         <div className="w-[300px] bg-gray-900 border-l border-gray-800 flex flex-col h-full flex-shrink-0 z-10 shadow-xl">
             {/* Header Tabs */}
             <div className="flex border-b border-gray-800 bg-gray-950">
-                <TabButton id="ia" label="IA" active={activeTab === 'ia'} onClick={() => setActiveTab('ia')} />
-                <TabButton id="props" label="Props" active={activeTab === 'props'} onClick={() => setActiveTab('props')} />
-                <TabButton id="rne" label="RNE" active={activeTab === 'rne'} onClick={() => setActiveTab('rne')} />
-                <TabButton id="biblioteca" label="Biblioteca" active={activeTab === 'biblioteca'} onClick={() => setActiveTab('biblioteca')} />
+                <TabButton label="IA" active={activeTab === 'ia'} onClick={() => setActiveTab('ia')} />
+                <TabButton label="Props" active={activeTab === 'props'} onClick={() => setActiveTab('props')} />
+                <TabButton label="RNE" active={activeTab === 'rne'} onClick={() => setActiveTab('rne')} />
+                <TabButton label="Biblioteca" active={activeTab === 'biblioteca'} onClick={() => setActiveTab('biblioteca')} />
             </div>
 
             {/* Contenido */}
@@ -42,7 +42,7 @@ export default function RightPanel() {
     )
 }
 
-function TabButton({ id, label, active, onClick }: { id: string, label: string, active: boolean, onClick: () => void }) {
+function TabButton({ label, active, onClick }: { label: string, active: boolean, onClick: () => void }) {
     return (
         <button 
             onClick={onClick}

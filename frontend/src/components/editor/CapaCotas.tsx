@@ -1,4 +1,4 @@
-import { Shape, Text } from 'react-konva'
+import { Shape } from 'react-konva'
 import type { Muro } from '../../types'
 import Konva from 'konva'
 import { TEMA_CLARO, TEMA_OSCURO } from '../../lib/temas'

@@ -6,7 +6,7 @@ export function generarDXF(
     muros: Muro[],
     puertas: Puerta[],
     ventanas: Ventana[],
-    nombreProyecto: string
+    _nombreProyecto: string
 ): string {
     const L: string[] = []
     const push = (...args: (string | number)[]) => args.forEach(a => L.push(String(a)))
@@ -87,8 +87,8 @@ export function generarDXF(
         const nx = (-dy / len) * ep
         const ny = (dx / len) * ep
 
-        const alturaBase = (muro.alturaBase || 0) * M2MM
-        const altura = (muro.altura || 2.80) * M2MM
+        const alturaBase = 0
+        const altura = (muro.altura || 2.40) * M2MM
 
         const pts = [
             { x: (muro.x1 + nx) * M2MM, y: (muro.y1 + ny) * M2MM },
@@ -117,7 +117,7 @@ export function generarDXF(
 
     // Puertas → LINE + ARC en layer A-DOOR
     puertas.forEach((puerta) => {
-        const ang = puerta.angulo_apertura
+        const ang = puerta.rotacion
         const ancho = puerta.ancho * M2MM
         const cx = puerta.x * M2MM
         const cy = puerta.y * M2MM
@@ -139,7 +139,7 @@ export function generarDXF(
 
     // Ventanas → 3 LINEs en layer A-WIND
     ventanas.forEach((ventana) => {
-        const ang = ventana.angulo
+        const ang = ventana.rotacion
         const ancho = ventana.ancho * M2MM
         const cx = ventana.x * M2MM
         const cy = ventana.y * M2MM

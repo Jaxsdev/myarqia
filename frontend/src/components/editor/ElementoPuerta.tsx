@@ -27,7 +27,8 @@ export default function ElementoPuerta({
     const cx = ws(puerta.x, panX, zoom)
     const cy = ws(puerta.y, panY, zoom)
     const anchoPx = puerta.ancho * PX * zoom
-    const angGrados = puerta.angulo_apertura * (180 / Math.PI)
+    const rotGrados = puerta.rotacion * (180 / Math.PI)
+    const openingAngle = puerta.angulo // opening angle from store (45, 90, 135)
 
     const color = seleccionado ? tema.puertaSeleccionada : tema.puerta
 
@@ -43,7 +44,7 @@ export default function ElementoPuerta({
     return (
         <Group
             onClick={handleClick}
-            rotation={angGrados}
+            rotation={rotGrados}
             x={cx} y={cy}
         >
             {/* Marco de la puerta (opcional, para realismo) */}
@@ -53,21 +54,22 @@ export default function ElementoPuerta({
                 strokeWidth={2}
             />
 
-            {/* Hoja de la puerta (abierta a 90 grados) */}
+            {/* Hoja de la puerta */}
             <Line
-                points={[0, 0, 0, -anchoPx]}
+                points={[0, 0, 0, puerta.sentido === 'izquierda' ? anchoPx : -anchoPx]}
+                rotation={puerta.sentido === 'izquierda' ? -openingAngle : openingAngle}
                 stroke={color}
                 strokeWidth={seleccionado ? 2.5 : 2}
                 hitStrokeWidth={10}
             />
 
-            {/* Arco de apertura en línea discontinua */}
+            {/* Arco de apertura */}
             <Arc
                 x={0} y={0}
                 innerRadius={anchoPx}
                 outerRadius={anchoPx}
-                angle={90}
-                rotation={-90}
+                angle={openingAngle}
+                rotation={puerta.sentido === 'izquierda' ? -90 - openingAngle : -90}
                 fill="transparent"
                 stroke={color}
                 strokeWidth={1}

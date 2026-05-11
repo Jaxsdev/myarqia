@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
     IconFile,
@@ -32,6 +32,21 @@ import {
     IconSun,
     IconMoon
 } from '@tabler/icons-react'
+import type { ReactNode } from 'react'
+
+interface MenuItemType {
+    label?: string
+    icon?: ReactNode
+    shortcut?: string
+    action?: () => void
+    active?: boolean
+    type?: 'separator'
+}
+
+interface MenuCategory {
+    label: string
+    items?: MenuItemType[]
+}
 import { useProyectoStore } from '../../store/useProyectoStore'
 import { usePlanoStore } from '../../store/usePlanoStore'
 import { useGuardadoAutomatico } from '../../hooks/useGuardadoAutomatico'
@@ -44,9 +59,10 @@ import { useEditorStore } from '../../store/useEditorStore'
 export default function TopBar() {
     const navigate = useNavigate()
     const { proyectoActual, setProyectoActual } = useProyectoStore()
-    const {
-        muros, puertas, ventanas, limpiarTodo,
-        eliminarSeleccionado, seleccionarTodo, duplicarSeleccion
+    const { 
+        muros, puertas, ventanas, limpiarTodo, 
+        eliminarSeleccionado, seleccionarTodo, duplicarSeleccion,
+        undo, redo
     } = usePlanoStore()
     const { guardando, forzarGuardado } = useGuardadoAutomatico()
     const { exportar } = useExportarPDF()
@@ -85,11 +101,12 @@ export default function TopBar() {
                         break
                     case 'z':
                         e.preventDefault()
-                        alert('Deshacer en desarrollo')
+                        if (e.shiftKey) redo()
+                        else undo()
                         break
                     case 'y':
                         e.preventDefault()
-                        alert('Rehacer en desarrollo')
+                        redo()
                         break
                     case 'd':
                         e.preventDefault()
@@ -169,7 +186,7 @@ export default function TopBar() {
         }
     }
 
-    const archivoItems = [
+    const archivoItems: MenuItemType[] = [
         { label: 'Nuevo proyecto', icon: <IconSquarePlus size={14} />, shortcut: 'Ctrl+N', action: handleNuevo },
         { label: 'Abrir proyecto', icon: <IconFolder size={14} />, shortcut: 'Ctrl+O', action: () => navigate('/dashboard') },
         { label: 'Guardar', icon: <IconDeviceFloppy size={14} />, shortcut: 'Ctrl+S', action: forzarGuardado },
@@ -180,9 +197,9 @@ export default function TopBar() {
         { label: 'Cerrar proyecto', icon: <IconX size={14} />, action: () => navigate('/dashboard') },
     ]
 
-    const editarItems = [
-        { label: 'Deshacer', icon: <IconArrowBackUp size={14} />, shortcut: 'Ctrl+Z', action: () => alert('Deshacer en desarrollo') },
-        { label: 'Rehacer', icon: <IconArrowForwardUp size={14} />, shortcut: 'Ctrl+Y', action: () => alert('Rehacer en desarrollo') },
+    const editarItems: MenuItemType[] = [
+        { label: 'Deshacer', icon: <IconArrowBackUp size={14} />, shortcut: 'Ctrl+Z', action: undo },
+        { label: 'Rehacer', icon: <IconArrowForwardUp size={14} />, shortcut: 'Ctrl+Y', action: redo },
         { label: 'Cortar', icon: <IconScissors size={14} />, shortcut: 'Ctrl+X', action: () => alert('Cortar en desarrollo') },
         { label: 'Copiar', icon: <IconCopy size={14} />, shortcut: 'Ctrl+C', action: () => alert('Copiar en desarrollo') },
         { label: 'Pegar', icon: <IconClipboard size={14} />, shortcut: 'Ctrl+V', action: () => alert('Pegar en desarrollo') },
@@ -202,7 +219,7 @@ export default function TopBar() {
         }
     }
 
-    const verItems = [
+    const verItems: MenuItemType[] = [
         { label: 'Planta 2D', icon: <IconLayout size={14} />, action: () => setVista('2d'), active: vista === '2d' },
         { label: 'Vista 3D', icon: <IconBox size={14} />, action: () => setVista('3d'), active: vista === '3d' },
         { label: 'Planos técnicos', icon: <IconClipboardText size={14} />, action: () => setVista('planos'), active: vista === 'planos' },
@@ -215,7 +232,7 @@ export default function TopBar() {
         { label: 'Pantalla completa', icon: <IconMaximize size={14} />, shortcut: 'F11', action: handleFullScreen },
     ]
 
-    const menuItems = [
+    const menuItems: MenuCategory[] = [
         { label: 'Archivo', items: archivoItems },
         { label: 'Editar', items: editarItems },
         { label: 'Ver', items: verItems },

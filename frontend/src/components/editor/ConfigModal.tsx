@@ -1,4 +1,3 @@
-import React from 'react'
 import { useEditorStore } from '../../store/useEditorStore'
 import { IconX, IconSettings, IconPalette, IconRuler, IconKeyboard } from '@tabler/icons-react'
 

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { usePlanoStore } from '../../store/usePlanoStore'
-import { IconHome, IconEye, IconEyeOff, IconChevronRight, IconChevronLeft, IconLock, IconLockOpen, IconPlus, IconHistory, IconCircleFilled, IconPencil, IconTrash, IconCircleCheck, IconFlag, IconAlertTriangle, IconCheck } from '@tabler/icons-react'
+import { IconEye, IconEyeOff, IconChevronRight, IconChevronLeft, IconLock, IconLockOpen, IconPlus, IconHistory, IconCircleFilled, IconPencil, IconTrash, IconCircleCheck, IconFlag, IconAlertTriangle, IconCheck } from '@tabler/icons-react'
 
 type Tab = 'arbol' | 'capas' | 'historial'
 
@@ -21,7 +21,7 @@ const LAYER_LABELS: Record<string, string> = {
 
 export default function LeftPanel() {
     const { 
-        muros, puertas, ventanas, escaleras, columnas, cotas, textos, areas, ambientes,
+        puertas, areas, ambientes,
         idsSeleccionados, seleccionar,
         capas, capaActiva, setCapaActiva, toggleCapaVisible, toggleCapaBloqueada,
         historial, irAEstado, saveHistory
@@ -29,18 +29,6 @@ export default function LeftPanel() {
 
     const [activeTab, setActiveTab] = useState<Tab>('capas')
     const [collapsed, setCollapsed] = useState(false)
-    const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-        'planta-baja': true,
-        'ambientes': true,
-        'estructurales': true,
-        'puertas-ventanas': true,
-        'cotas': false,
-        'textos': false
-    })
-
-    const toggleGroup = (id: string) => {
-        setOpenGroups(prev => ({ ...prev, [id]: !prev[id] }))
-    }
 
     if (collapsed) {
         return (
@@ -59,12 +47,8 @@ export default function LeftPanel() {
         seleccionar(id, false)
     }
 
-    // Contadores para grupos
-    const countEstructurales = muros.length + columnas.length + (escaleras?.length || 0)
-    const countAberturas = puertas.length + ventanas.length
-
     // Validaciones RNE Dinámicas MVP
-    const validacionesRNE = []
+    const validacionesRNE: { id: string; tipo: 'ok' | 'alerta'; texto: string; elementId: string | null }[] = []
     let alertasCount = 0
 
     // 1. Validar Puertas (A.010 Art.25 - Puertas principales mín 0.90m)
@@ -108,7 +92,7 @@ export default function LeftPanel() {
     })
 
     // Ordenar para que las alertas salgan primero
-    validacionesRNE.sort((a, b) => (a.tipo === 'alerta' ? -1 : 1))
+    validacionesRNE.sort((a, _b) => (a.tipo === 'alerta' ? -1 : 1))
     
     // Si no hay nada, mostrar algo por defecto para que no quede vacío
     if (validacionesRNE.length === 0) {
@@ -166,7 +150,7 @@ export default function LeftPanel() {
                                 const areaVal = a.ancho && a.largo ? (a.ancho * a.largo).toFixed(1) : '0.0'
                                 return (
                                     <div 
-                                        key={a.id} 
+                                     key={`amb-${i}`} 
                                         className="flex items-center px-3 py-2 cursor-pointer hover:bg-gray-800/50 transition-colors"
                                     >
                                         <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mr-2.5" style={{ backgroundColor: a.color || '#4ade80' }} />
@@ -353,54 +337,6 @@ export default function LeftPanel() {
                     </button>
                 )}
             </div>
-        </div>
-    )
-}
-
-function TreeGroup({ label, isOpen, onToggle, children, isLevel = false }: { label: string, isOpen: boolean, onToggle: () => void, children: React.ReactNode, isLevel?: boolean }) {
-    return (
-        <div className="mb-0.5">
-            <div 
-                onClick={onToggle}
-                className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md cursor-pointer transition-colors group hover:bg-gray-800/60
-                    ${isLevel ? 'text-gray-200 font-semibold text-sm' : 'text-gray-400 font-medium text-xs'}
-                `}
-            >
-                <div className={`text-gray-500 transition-transform ${isOpen ? 'rotate-90' : ''}`}>
-                    <IconChevronRight size={12} stroke={3} />
-                </div>
-                <span className="flex-1 truncate select-none">{label}</span>
-            </div>
-            {isOpen && (
-                <div className={`ml-3 pl-2 border-l border-gray-800/50 mt-0.5 space-y-0.5 ${isLevel ? 'mb-4' : 'mb-2'}`}>
-                    {children}
-                </div>
-            )}
-        </div>
-    )
-}
-
-function TreeItem({ label, color, active, onClick }: { label: string, color: string, active: boolean, onClick: () => void }) {
-    return (
-        <div 
-            onClick={onClick}
-            className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer transition-colors text-xs group relative
-                ${active ? 'bg-[#2D8EFF15] text-white border-l-2 border-[#2D8EFF]' : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200 border-l-2 border-transparent'}
-            `}
-        >
-            <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${color} ml-1`} />
-            <span className="truncate flex-1 select-none">{label}</span>
-            <div className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-white px-1 flex items-center justify-center">
-                <IconEye size={14} />
-            </div>
-        </div>
-    )
-}
-
-function EmptyItem() {
-    return (
-        <div className="px-3 py-1.5 text-[10px] text-gray-600 italic select-none">
-            Vacío
         </div>
     )
 }

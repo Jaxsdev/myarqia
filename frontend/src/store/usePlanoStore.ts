@@ -1,17 +1,7 @@
 import { create } from 'zustand'
-import type { Muro, Puerta, Ventana, Escalera, Columna, Cota, ElementoTexto, ElementoArea, Punto } from '../types'
+import type { Muro, Puerta, Ventana, Escalera, Columna, Cota, ElementoTexto, ElementoArea, Punto, Ambiente } from '../types'
 
-export interface AmbienteIA {
-    nombre: string
-    x: number
-    y: number
-    ancho: number
-    largo: number
-    color?: string
-}
-
-let contador = 1
-const uid = (p: string) => `${p}-${contador++}`
+const uid = (p: string) => `${p}-${crypto.randomUUID().slice(0, 8)}`
 
 type TipoDibujo = 'muro' | 'puerta' | 'ventana' | 'escalera' | 'columna' | 'cota' | 'area'
 
@@ -35,8 +25,8 @@ export interface EntradaHistorial {
 
 interface PlanoState {
 
-    ambientes: AmbienteIA[]
-    setAmbientes: (a: AmbienteIA[]) => void
+    ambientes: Ambiente[]
+    setAmbientes: (a: Ambiente[]) => void
 
     muros: Muro[]
     puertas: Puerta[]
@@ -76,13 +66,13 @@ interface PlanoState {
     // Acciones — Muro
     iniciarDibujo: (p: Punto, tipo: TipoDibujo) => void
     actualizarDibujo: (p: Punto) => void
-    terminarMuro: (espesor?: number, continuar?: boolean) => void
-    terminarPuerta: (ancho?: number, sentido?: 'izquierda' | 'derecha', angulo?: number) => void
-    terminarVentana: (ancho?: number, alto?: number, alfeizar?: number) => void
-    terminarEscalera: (peldaños?: number, paso?: number, contrapaso?: number) => void
-    terminarColumna: (ancho?: number, largo?: number, forma?: 'cuadrada' | 'circular', pManual?: Punto) => void
-    terminarCota: (p?: Punto) => void
-    terminarTexto: (contenido: string, fontSize: number, color: string, pManual?: Punto) => void
+    terminarMuro: (propiedades: { espesor: number, altura: number, tipo: any, material: string, alineacion: any }, continuar?: boolean) => void
+    terminarPuerta: (propiedades: { ancho: number, sentido: any, angulo: number, tipo: any }, pManual?: Punto) => void
+    terminarVentana: (propiedades: { ancho: number, alto: number, alfeizar: number, tipo: any }, pManual?: Punto) => void
+    terminarEscalera: (propiedades: { ancho: number, peldaños: number, paso: number, contrapaso: number, direccion: any }) => void
+    terminarColumna: (propiedades: { dimension: number, forma: any, material: any }, pManual?: Punto) => void
+    terminarCota: (propiedades: { tipo: any, mostrarUnidades: boolean, decimales: any, estilo: any }, pManual?: Punto) => void
+    terminarTexto: (contenido: string, propiedades: { fontSize: number, estilo: any, capa: string }, pManual?: Punto) => void
     terminarArea: () => void
     cancelarDibujo: () => void
 
@@ -99,7 +89,7 @@ interface PlanoState {
     irAEstado: (id: string) => void
 
     // Cargar desde Supabase
-    cargarDatos: (muros: Muro[], puertas: Puerta[], ventanas: Ventana[], escaleras?: Escalera[], columnas?: Columna[], cotas?: Cota[], textos?: ElementoTexto[], areas?: ElementoArea[], ambientes?: AmbienteIA[], capas?: Capa[], historial?: EntradaHistorial[]) => void
+    cargarDatos: (muros: Muro[], puertas: Puerta[], ventanas: Ventana[], escaleras?: Escalera[], columnas?: Columna[], cotas?: Cota[], textos?: ElementoTexto[], areas?: ElementoArea[], ambientes?: Ambiente[], capas?: Capa[], historial?: EntradaHistorial[]) => void
     limpiarTodo: () => void
 
     actualizarMuro: (id: string, cambios: Partial<Muro>) => void
@@ -246,7 +236,7 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
     ambientes: [],
     setAmbientes: (ambientes) => set({ ambientes }),
 
-    terminarMuro: (espesor = 0.25, continuar = false) => {
+    terminarMuro: (props, continuar = false) => {
         const { puntoInicio, puntoFin } = get()
         if (!puntoInicio || !puntoFin) return
         const dx = puntoFin.x - puntoInicio.x
@@ -260,10 +250,11 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
             id: uid('muro'),
             x1: puntoInicio.x, y1: puntoInicio.y,
             x2: puntoFin.x, y2: puntoFin.y,
-            espesor,
-            altura: 2.80,
-            alturaBase: 0,
-            material: 'concreto' as const,
+            espesor: props.espesor,
+            altura: props.altura,
+            tipo: props.tipo,
+            material: props.material,
+            alineacion: props.alineacion,
             layer: get().capaActiva,
         }
 
@@ -278,7 +269,7 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
         }))
     },
 
-    terminarPuerta: (ancho, sentido = 'derecha', angulo = 90, pManual?: Punto) => {
+    terminarPuerta: (props, pManual?: Punto) => {
         const { puntoInicio, puntoFin, muros } = get()
         const pIn = pManual || puntoInicio
         const pFi = pManual || puntoFin
@@ -310,9 +301,9 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
             }
         })
 
-        // Si es inserción por clic (distancia 0), usamos ancho default y ángulo del muro
+        // Si es inserción por clic (distancia 0), usamos ancho de las propiedades
         if (dist < 0.05) {
-            dist = ancho || 0.90
+            dist = props.ancho || 0.90
             ang = anguloMuro
         }
 
@@ -323,8 +314,11 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
                 id: uid('puerta'),
                 muro_id: muroCercanoId,
                 x: pIn.x, y: pIn.y,
+                rotacion: ang,
                 ancho: dist,
-                angulo_apertura: ang,
+                sentido: props.sentido,
+                angulo: props.angulo,
+                tipo: props.tipo,
                 layer: get().capaActiva,
             }],
             dibujando: false, puntoInicio: null, puntoFin: null,
@@ -337,13 +331,13 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
             puertas: s.puertas.map(p => {
                 if (p.id !== id) return p
                 // Alternar entre 4 estados: derecha-fuera, derecha-dentro, izquierda-fuera, izquierda-dentro
-                // Por ahora algo simple: invertir el ángulo de apertura en 180 grados o espejo
-                return { ...p, angulo_apertura: p.angulo_apertura + Math.PI / 2 }
+                // Alternar entre 4 estados (simplificado: invertir rotación por ahora)
+                return { ...p, rotacion: p.rotacion + Math.PI / 2 }
             })
         }))
     },
 
-    terminarVentana: (ancho, alto = 1.20, alfeizar = 0.90, pManual?: Punto) => {
+    terminarVentana: (props, pManual?: Punto) => {
         const { puntoInicio, puntoFin, muros } = get()
         const pIn = pManual || puntoInicio
         const pFi = pManual || puntoFin
@@ -375,7 +369,7 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
         })
 
         if (dist < 0.05) {
-            dist = ancho || 1.20
+            dist = props.ancho || 1.20
             ang = anguloMuro
         }
 
@@ -386,59 +380,68 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
                 id: uid('ventana'),
                 muro_id: muroCercanoId,
                 x: pIn.x, y: pIn.y,
+                rotacion: ang,
                 ancho: dist,
-                angulo: ang,
+                alto: props.alto,
+                alfeizar: props.alfeizar,
+                tipo: props.tipo,
                 layer: get().capaActiva,
             }],
             dibujando: false, puntoInicio: null, puntoFin: null,
         }))
     },
 
-    terminarEscalera: (peldaños = 15, paso = 0.25, contrapaso = 0.175) => {
+    terminarEscalera: (props) => {
         const { puntoInicio, puntoFin } = get()
         if (!puntoInicio || !puntoFin) return
-        get().saveHistory(`Escalera creada (${peldaños} escalones)`, 'creacion')
+        get().saveHistory(`Escalera creada (${props.peldaños} escalones)`, 'creacion')
         set((s) => ({
             escaleras: [...(s.escaleras || []), {
                 id: uid('escalera'),
                 x1: puntoInicio.x, y1: puntoInicio.y,
                 x2: puntoFin.x, y2: puntoFin.y,
-                peldaños, paso, contrapaso,
+                ancho: props.ancho,
+                peldaños: props.peldaños, 
+                paso: props.paso, 
+                contrapaso: props.contrapaso,
+                direccion: props.direccion,
                 layer: get().capaActiva,
             }],
             dibujando: false, puntoInicio: null, puntoFin: null,
         }))
     },
 
-    terminarColumna: (ancho = 0.30, largo = 0.30, forma = 'cuadrada', pManual?: Punto) => {
+    terminarColumna: (props, pManual?: Punto) => {
         const { puntoInicio } = get()
         const p = pManual || puntoInicio
         if (!p) return
-        get().saveHistory(`Columna insertada (${ancho}x${largo}m)`, 'creacion')
+        get().saveHistory(`Columna insertada (${props.dimension}m)`, 'creacion')
         set((s) => ({
             columnas: [...(s.columnas || []), {
                 id: uid('columna'),
                 x: p.x, y: p.y,
-                ancho, largo, forma,
+                forma: props.forma,
+                dimension: props.dimension,
+                material: props.material,
                 layer: get().capaActiva,
             }],
             dibujando: false, puntoInicio: null, puntoFin: null,
         }))
     },
 
-    terminarCota: (p) => {
+    terminarCota: (props: { tipo: any, mostrarUnidades: boolean, decimales: any, estilo: any }, pManual?: Punto) => {
         const { puntoInicio, puntoFin, pasoDibujo } = get()
         if (!puntoInicio || !puntoFin) return
 
         if (pasoDibujo === 1) {
             // Segundo clic: fijamos el punto final y pasamos a definir offset
-            set({ puntoFin: p || puntoFin, pasoDibujo: 2 })
+            set({ puntoFin: pManual || puntoFin, pasoDibujo: 2 })
             return
         }
 
         if (pasoDibujo === 2) {
             // Tercer clic: calculamos el offset y guardamos la cota
-            const p3 = p || puntoFin
+            const p3 = pManual || puntoFin
             
             // Proyección del tercer punto sobre la perpendicular a la línea de cota
             const dx = puntoFin.x - puntoInicio.x
@@ -466,6 +469,10 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
                     x1: puntoInicio.x, y1: puntoInicio.y,
                     x2: puntoFin.x, y2: puntoFin.y,
                     offset,
+                    tipo: props.tipo,
+                    mostrarUnidades: props.mostrarUnidades,
+                    decimales: props.decimales,
+                    estilo: props.estilo,
                     layer: get().capaActiva,
                 }],
                 dibujando: false, puntoInicio: null, puntoFin: null, puntoAux: null, pasoDibujo: 0
@@ -683,7 +690,7 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
         }))
     },
 
-    terminarTexto: (contenido, fontSize, color, pManual) => {
+    terminarTexto: (contenido, props, pManual) => {
         const { puntoInicio } = get()
         const p = pManual || puntoInicio
         if (!p) return
@@ -692,8 +699,11 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
             textos: [...s.textos, {
                 id: uid('texto'),
                 x: p.x, y: p.y,
-                contenido, fontSize, color,
-                layer: get().capaActiva,
+                contenido,
+                fontSize: props.fontSize,
+                color: '#E8ECF0',
+                estilo: props.estilo,
+                layer: props.capa || get().capaActiva,
             }],
             dibujando: false, puntoInicio: null, puntoFin: null,
         }))

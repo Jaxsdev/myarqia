@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react'
+import { useRef, useEffect, useState, useCallback, type MouseEvent, type WheelEvent } from 'react'
 import { Stage, Layer, Rect, Line } from 'react-konva'
 import Cuadricula from './Cuadricula'
 import ElementoPuerta from './ElementoPuerta'
@@ -47,7 +47,7 @@ export default function CanvasEditor() {
         snapActivo, toggleSnap, snapSize,
         orthoActivo, toggleOrtho,
         cotasVisibles, nomenclaturaVisible, grillaVisible,
-        modoClaro, toggleModoClaro, modalConfigAbierto,
+        modoClaro, modalConfigAbierto,
         propiedades,
         cursorX, cursorY,
     } = useEditorStore()
@@ -136,7 +136,7 @@ export default function CanvasEditor() {
                 case 't': setHerramienta('text'); break
                 case 'a': setHerramienta('area'); break
                 case 's': toggleSnap(); break
-                case 'f8':
+                case 'f8':  // e.key === 'F8' → toLowerCase → 'f8'
                     e.preventDefault()
                     toggleOrtho()
                     break
@@ -150,7 +150,7 @@ export default function CanvasEditor() {
         return () => window.removeEventListener('keydown', handler)
     }, [cancelarDibujo, setHerramienta, toggleOrtho, toggleSnap, eliminarSeleccionado, undo, redo])
 
-    const getPunto = useCallback((e: React.MouseEvent): Punto => {
+    const getPunto = useCallback((e: MouseEvent<HTMLDivElement>): Punto => {
         const rect = contenedorRef.current!.getBoundingClientRect()
         let mx = screenToWorld(e.clientX - rect.left, panX, zoom)
         let my = screenToWorld(e.clientY - rect.top, panY, zoom)
@@ -243,7 +243,7 @@ export default function CanvasEditor() {
     }, [panX, panY, zoom, snapActivo, snapSize, orthoActivo, puntoInicio, muros, herramienta])
 
     // --- Wheel: zoom centrado en el cursor ---
-    const handleWheel = useCallback((e: React.WheelEvent) => {
+    const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
         e.preventDefault()
         const factor = e.deltaY > 0 ? 0.92 : 1.08
         const nz = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom * factor))
@@ -255,7 +255,7 @@ export default function CanvasEditor() {
     }, [zoom, panX, panY, setZoom, setPan])
 
     // --- MouseDown: inicia o termina dibujo ---
-    const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    const handleMouseDown = useCallback((e: MouseEvent<HTMLDivElement>) => {
         const p = getPunto(e)
 
         if (e.button === 1) {
@@ -279,33 +279,33 @@ export default function CanvasEditor() {
 
             if (herramienta === 'wall') {
                 if (!dibujando) iniciarDibujo(p, 'muro')
-                else terminarMuro(propiedades.muro.grosor, true)
+                else terminarMuro(propiedades.muro, true)
             }
             if (herramienta === 'door') {
-                terminarPuerta(propiedades.puerta.ancho, propiedades.puerta.sentido, propiedades.puerta.angulo, p)
+                terminarPuerta(propiedades.puerta, p)
                 return
             }
             if (herramienta === 'window') {
-                terminarVentana(propiedades.ventana.ancho, propiedades.ventana.alto, propiedades.ventana.alfeizar, p)
+                terminarVentana(propiedades.ventana, p)
                 return
             }
             if (herramienta === 'stair') {
                 if (!dibujando) iniciarDibujo(p, 'escalera')
-                else terminarEscalera(propiedades.escalera.peldaños, propiedades.escalera.paso, propiedades.escalera.contrapaso)
+                else terminarEscalera(propiedades.escalera)
             }
             if (herramienta === 'column') {
-                terminarColumna(propiedades.columna.ancho, propiedades.columna.largo, propiedades.columna.forma as 'cuadrada' | 'circular', p)
+                terminarColumna(propiedades.columna, p)
                 return
             }
             if (herramienta === 'dim') {
                 if (!dibujando) iniciarDibujo(p, 'cota')
-                else terminarCota(p)
+                else terminarCota(propiedades.dim, p)
                 return
             }
             if (herramienta === 'text') {
                 const contenido = prompt("Ingresa el texto:")
                 if (contenido !== null && contenido !== "") {
-                    terminarTexto(contenido, propiedades.texto.fontSize, propiedades.texto.color, p)
+                    terminarTexto(contenido, propiedades.texto, p)
                 }
                 return
             }
@@ -334,13 +334,13 @@ export default function CanvasEditor() {
     ])
 
     // --- ContextMenu: cancela dibujo con clic derecho ---
-    const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    const handleContextMenu = useCallback((e: MouseEvent<HTMLDivElement>) => {
         e.preventDefault()
         if (dibujando) cancelarDibujo()
     }, [dibujando, cancelarDibujo])
 
     // --- MouseMove: actualiza cursor y preview ---
-    const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    const handleMouseMove = useCallback((e: MouseEvent<HTMLDivElement>) => {
         const p = getPunto(e)
         setCursor(p.x, p.y)
 
@@ -378,7 +378,7 @@ export default function CanvasEditor() {
             onContextMenu={handleContextMenu}
             onDoubleClick={() => {
                 if (herramienta === 'wall' && dibujando) {
-                    terminarMuro(propiedades.muro.grosor, false)
+                    terminarMuro(propiedades.muro, false)
                 }
                 if (herramienta === 'area' && dibujando) {
                     terminarArea()
@@ -635,8 +635,8 @@ export default function CanvasEditor() {
                         <PreviewGhost
                             x={cursorX} y={cursorY}
                             tipo={herramienta as any}
-                            ancho={herramienta === 'column' ? propiedades.columna.ancho : (herramienta === 'door' ? propiedades.puerta.ancho : propiedades.ventana.ancho)}
-                            largo={herramienta === 'column' ? propiedades.columna.largo : undefined}
+                            ancho={(herramienta === 'door' ? propiedades.puerta.ancho : propiedades.ventana.ancho)}
+                            dimension={herramienta === 'column' ? propiedades.columna.dimension : undefined}
                             forma={herramienta === 'column' ? propiedades.columna.forma : undefined}
                             muros={muros}
                             zoom={zoom} panX={panX} panY={panY}
@@ -646,7 +646,7 @@ export default function CanvasEditor() {
                     {/* Preview muro */}
                     {dibujando && tipoDibujo === 'muro' && puntoInicio && puntoFin && (
                         <PreviewMuro inicio={puntoInicio} fin={puntoFin}
-                            espesor={propiedades.muro.grosor} zoom={zoom} panX={panX} panY={panY} />
+                            espesor={propiedades.muro.espesor} zoom={zoom} panX={panX} panY={panY} />
                     )}
 
                     {/* Preview Polígono de Área */}

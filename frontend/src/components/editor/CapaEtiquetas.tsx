@@ -1,5 +1,4 @@
 import { Shape } from 'react-konva'
-import type { Muro } from '../../types'
 import Konva from 'konva'
 
 interface Ambiente {

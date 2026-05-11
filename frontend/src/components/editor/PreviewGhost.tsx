@@ -1,14 +1,13 @@
-import React from 'react'
 import { Group, Line, Arc, Circle, Rect } from 'react-konva'
-import type { Punto, Muro } from '../../types'
+import type { Muro } from '../../types'
 
 interface Props {
     x: number
     y: number
     ancho: number
     tipo: 'door' | 'window' | 'column'
-    largo?: number // Añadido para columnas
-    forma?: 'cuadrada' | 'circular' // Añadido para columnas
+    dimension?: number // Para columnas
+    forma?: 'cuadrada' | 'circular' // Para columnas
     muros: Muro[]
     zoom: number
     panX: number
@@ -18,11 +17,11 @@ interface Props {
 const PX = 100
 const ws = (m: number, pan: number, z: number) => m * PX * z + pan
 
-export default function PreviewGhost({ x, y, ancho, tipo, muros, zoom, panX, panY, largo, forma }: Props) {
+export default function PreviewGhost({ x, y, ancho, tipo, muros, zoom, panX, panY, dimension, forma }: Props) {
     const cx = ws(x, panX, zoom)
     const cy = ws(y, panY, zoom)
     const anchoPx = ancho * PX * zoom
-    const largoPx = (largo || ancho) * PX * zoom
+    const dimPx = (dimension || 0.30) * PX * zoom
     
     // Calcular ángulo del muro más cercano
     let anguloMuro = 0
@@ -70,9 +69,9 @@ export default function PreviewGhost({ x, y, ancho, tipo, muros, zoom, panX, pan
             )}
             {tipo === 'column' && (
                 forma === 'circular' ? (
-                    <Circle radius={anchoPx / 2} stroke={color} strokeWidth={1} dash={[4, 2]} />
+                    <Circle radius={dimPx / 2} stroke={color} strokeWidth={1} dash={[4, 2]} />
                 ) : (
-                    <Rect x={-anchoPx / 2} y={-largoPx / 2} width={anchoPx} height={largoPx} stroke={color} strokeWidth={1} dash={[4, 2]} />
+                    <Rect x={-dimPx / 2} y={-dimPx / 2} width={dimPx} height={dimPx} stroke={color} strokeWidth={1} dash={[4, 2]} />
                 )
             )}
         </Group>

@@ -1,12 +1,12 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import { supabase } from './lib/supabase'
 import { useAuthStore } from './store/useAuthStore'
 
 // Escuchar cambios de sesión globalmente
-supabase.auth.onAuthStateChange((event, session) => {
+supabase.auth.onAuthStateChange((_event, session) => {
   const { setUsuario, setCargando } = useAuthStore.getState()
   if (session?.user) {
     setUsuario({
@@ -20,8 +20,8 @@ supabase.auth.onAuthStateChange((event, session) => {
   setCargando(false)
 })
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
     <App />
-  </React.StrictMode>,
+  </StrictMode>,
 )

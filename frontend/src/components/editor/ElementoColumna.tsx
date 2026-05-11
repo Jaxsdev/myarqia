@@ -1,7 +1,5 @@
-import React from 'react'
 import { Group, Rect, Circle } from 'react-konva'
 import type { Columna } from '../../types'
-import { TEMA_CLARO, TEMA_OSCURO } from '../../lib/temas'
 
 interface Props {
     columna: Columna
@@ -22,11 +20,10 @@ function ws(m: number, pan: number, zoom: number) {
 export default function ElementoColumna({
     columna, zoom, panX, panY, seleccionado, onClick, modoClaro
 }: Props) {
-    const tema = modoClaro ? TEMA_CLARO : TEMA_OSCURO
+
     const cx = ws(columna.x, panX, zoom)
     const cy = ws(columna.y, panY, zoom)
-    const anchoPx = columna.ancho * PX * zoom
-    const largoPx = columna.largo * PX * zoom
+    const dimPx = columna.dimension * PX * zoom
 
     const color = seleccionado ? '#1d4ed8' : (modoClaro ? '#1a1a1a' : '#94a3b8')
 
@@ -37,15 +34,15 @@ export default function ElementoColumna({
         >
             {columna.forma === 'cuadrada' ? (
                 <Rect
-                    x={-anchoPx / 2} y={-largoPx / 2}
-                    width={anchoPx} height={largoPx}
+                    x={-dimPx / 2} y={-dimPx / 2}
+                    width={dimPx} height={dimPx}
                     fill={color}
                     stroke={seleccionado ? '#3b82f6' : 'transparent'}
                     strokeWidth={2}
                 />
             ) : (
                 <Circle
-                    radius={anchoPx / 2}
+                    radius={dimPx / 2}
                     fill={color}
                     stroke={seleccionado ? '#3b82f6' : 'transparent'}
                     strokeWidth={2}

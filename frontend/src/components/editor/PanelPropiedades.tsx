@@ -1,6 +1,7 @@
+import type { ReactNode } from 'react'
 import { usePlanoStore } from '../../store/usePlanoStore'
 
-const Section = ({ title, children }: { title: string, children: React.ReactNode }) => (
+const Section = ({ title, children }: { title: string, children: ReactNode }) => (
     <div className="mb-5">
         <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-3 border-b border-gray-800 pb-1.5">{title}</h3>
         <div className="flex flex-col gap-1.5">
@@ -9,7 +10,7 @@ const Section = ({ title, children }: { title: string, children: React.ReactNode
     </div>
 )
 
-const PropRow = ({ label, children }: { label: string, children: React.ReactNode }) => (
+const PropRow = ({ label, children }: { label: string, children: ReactNode }) => (
     <div className="flex items-center justify-between py-1">
         <span className="text-[11px] text-gray-400">{label}</span>
         <div className="flex items-center gap-2">
@@ -55,19 +56,19 @@ export default function PanelPropiedades() {
         )
     }
 
-    let typeName = ''
     let titleName = ''
-    if (muro) { typeName = 'Muro'; titleName = `Muro ${muro.material}` }
-    if (puerta) { typeName = 'Puerta'; titleName = `Puerta ${(puerta.ancho*100).toFixed(0)}cm` }
-    if (ventana) { typeName = 'Ventana'; titleName = `Ventana ${(ventana.ancho*100).toFixed(0)}cm` }
-    if (escalera) { typeName = 'Escalera'; titleName = `Escalera de ${escalera.peldaños} pasos` }
-    if (columna) { typeName = 'Columna'; titleName = `Columna ${columna.forma}` }
-    if (cota) { typeName = 'Cota'; titleName = `Cota` }
-    if (texto) { typeName = 'Texto'; titleName = texto.contenido.substring(0, 15) }
-    if (area) { typeName = 'Área'; titleName = area.nombre || `Área ${area.id.slice(-4)}` }
-    if (ambiente) { typeName = 'Ambiente'; titleName = ambiente.nombre }
+    if (muro) { titleName = `Muro ${muro.material}` }
+    if (puerta) { titleName = `Puerta ${(puerta.ancho*100).toFixed(0)}cm` }
+    if (ventana) { titleName = `Ventana ${(ventana.ancho*100).toFixed(0)}cm` }
+    if (escalera) { titleName = `Escalera de ${escalera.peldaños} pasos` }
+    if (columna) { titleName = `Columna ${columna.forma}` }
+    if (cota) { titleName = `Cota` }
+    if (texto) { titleName = texto.contenido.substring(0, 15) }
+    if (area) { titleName = area.nombre || `Área ${area.id.slice(-4)}` }
+    if (ambiente) { titleName = ambiente.nombre }
 
-    const layerInfo = capas.find(c => c.id === el.layer) || { id: el.layer || 'N/A', color: '#888' }
+    const layerId = 'layer' in el ? el.layer : 'N/A'
+    const layerInfo = capas.find(c => c.id === layerId) || { id: layerId, color: '#888' }
 
     return (
         <div className="h-full flex flex-col bg-[#0F111A]">
@@ -133,7 +134,7 @@ export default function PanelPropiedades() {
                     )}
                 </Section>
 
-                {el.layer && (
+                {'layer' in el && el.layer && (
                     <Section title="Material y Capa">
                         {muro && (
                             <PropRow label="Material">
@@ -179,10 +180,10 @@ export default function PanelPropiedades() {
                     ) : (
                         <>
                             <PropRow label="Inicio X">
-                                <PropValue value={el.x1?.toFixed(2) || '0'} suffix=" m" badge />
+                                <PropValue value={'x1' in el ? el.x1.toFixed(2) : '0'} suffix=" m" badge />
                             </PropRow>
                             <PropRow label="Inicio Y">
-                                <PropValue value={el.y1?.toFixed(2) || '0'} suffix=" m" badge />
+                                <PropValue value={'y1' in el ? el.y1.toFixed(2) : '0'} suffix=" m" badge />
                             </PropRow>
                         </>
                     )}

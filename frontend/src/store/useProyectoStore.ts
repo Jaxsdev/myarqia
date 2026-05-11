@@ -1,14 +1,7 @@
 import { create } from 'zustand'
 import type { Proyecto, DatosPlano } from '../types'
 
-const datosIniciales: DatosPlano = {
-    ambientes: [],
-    muros: [],
-    puertas: [],
-    ventanas: [],
-    escala: 100,
-    unidad: 'metros',
-}
+
 
 interface ProyectoState {
     proyectoActual: Proyecto | null

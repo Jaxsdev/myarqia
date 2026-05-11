@@ -25,6 +25,11 @@ export default function ContextBar() {
         setPropiedadMuro,
         setPropiedadPuerta,
         setPropiedadVentana,
+        setPropiedadEscalera,
+        setPropiedadColumna,
+        setPropiedadDim,
+        setPropiedadTexto,
+        setPropiedadSelect,
     } = useEditorStore()
 
     const { conteoAlertas } = useRNEStore()
@@ -38,8 +43,8 @@ export default function ContextBar() {
                         <div className="flex items-center gap-2 flex-shrink-0">
                             <span className="text-gray-500">Grosor:</span>
                             <select
-                                value={propiedades.muro.grosor}
-                                onChange={(e) => setPropiedadMuro({ grosor: parseFloat(e.target.value) })}
+                                value={propiedades.muro.espesor}
+                                onChange={(e) => setPropiedadMuro({ espesor: parseFloat(e.target.value) })}
                                 className="bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500 cursor-pointer"
                             >
                                 <option value={0.10}>10cm</option>
@@ -47,6 +52,18 @@ export default function ContextBar() {
                                 <option value={0.20}>20cm</option>
                                 <option value={0.25}>25cm</option>
                                 <option value={0.30}>30cm</option>
+                            </select>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Tipo:</span>
+                            <select
+                                value={propiedades.muro.tipo}
+                                onChange={(e) => setPropiedadMuro({ tipo: e.target.value as any })}
+                                className="bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500 cursor-pointer"
+                            >
+                                <option value="simple">Simple</option>
+                                <option value="doble">Doble</option>
+                                <option value="con-aislamiento">Con Aislamiento</option>
                             </select>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
@@ -60,6 +77,19 @@ export default function ContextBar() {
                                 <option value="drywall">Drywall</option>
                                 <option value="concreto">Concreto</option>
                             </select>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Altura:</span>
+                            <input
+                                type="number"
+                                step={0.1}
+                                min={1}
+                                max={5}
+                                value={propiedades.muro.altura}
+                                onChange={(e) => setPropiedadMuro({ altura: parseFloat(e.target.value) })}
+                                className="w-12 bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500"
+                            />
+                            <span className="text-gray-600">m</span>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                             <span className="text-gray-500">Alineación:</span>
@@ -108,6 +138,31 @@ export default function ContextBar() {
                                 {propiedades.puerta.sentido === 'izquierda' ? 'IZQ' : 'DER'}
                             </button>
                         </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Ángulo:</span>
+                            <select
+                                value={propiedades.puerta.angulo}
+                                onChange={(e) => setPropiedadPuerta({ angulo: parseInt(e.target.value) })}
+                                className="bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500 cursor-pointer"
+                            >
+                                <option value={45}>45°</option>
+                                <option value={90}>90°</option>
+                                <option value={135}>135°</option>
+                            </select>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Tipo:</span>
+                            <select
+                                value={propiedades.puerta.tipo}
+                                onChange={(e) => setPropiedadPuerta({ tipo: e.target.value as any })}
+                                className="bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500 cursor-pointer"
+                            >
+                                <option value="simple">Simple</option>
+                                <option value="doble">Doble</option>
+                                <option value="corredera">Corredera</option>
+                                <option value="vaivén">Vaivén</option>
+                            </select>
+                        </div>
                     </>
                 )
             case 'window':
@@ -128,6 +183,19 @@ export default function ContextBar() {
                             <span className="text-gray-600">m</span>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Alto:</span>
+                            <input
+                                type="number"
+                                step={0.05}
+                                min={0.30}
+                                max={3.00}
+                                value={propiedades.ventana.alto}
+                                onChange={(e) => setPropiedadVentana({ alto: parseFloat(e.target.value) })}
+                                className="w-14 bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500"
+                            />
+                            <span className="text-gray-600">m</span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
                             <span className="text-gray-500">Alféizar:</span>
                             <input
                                 type="number"
@@ -140,10 +208,248 @@ export default function ContextBar() {
                             />
                             <span className="text-gray-600">m</span>
                         </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Tipo:</span>
+                            <select
+                                value={propiedades.ventana.tipo}
+                                onChange={(e) => setPropiedadVentana({ tipo: e.target.value as any })}
+                                className="bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500 cursor-pointer"
+                            >
+                                <option value="fija">Fija</option>
+                                <option value="batiente">Batiente</option>
+                                <option value="corredera">Corredera</option>
+                                <option value="vidrio-piso-techo">Piso-Techo</option>
+                            </select>
+                        </div>
                     </>
                 )
-            default:
-                return null
+            case 'stair':
+                return (
+                    <>
+                        <div className="h-4 w-px bg-gray-800 mx-1 flex-shrink-0" />
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Ancho:</span>
+                            <input
+                                type="number"
+                                step={0.1}
+                                min={0.6}
+                                max={3}
+                                value={propiedades.escalera.ancho}
+                                onChange={(e) => setPropiedadEscalera({ ancho: parseFloat(e.target.value) })}
+                                className="w-12 bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Pasos:</span>
+                            <input
+                                type="number"
+                                min={1}
+                                max={30}
+                                value={propiedades.escalera.peldaños}
+                                onChange={(e) => setPropiedadEscalera({ peldaños: parseInt(e.target.value) })}
+                                className="w-10 bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Paso:</span>
+                            <input
+                                type="number"
+                                step={0.01}
+                                min={0.25}
+                                max={0.40}
+                                value={propiedades.escalera.paso}
+                                onChange={(e) => setPropiedadEscalera({ paso: parseFloat(e.target.value) })}
+                                className="w-12 bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">CP:</span>
+                            <input
+                                type="number"
+                                step={0.005}
+                                min={0.15}
+                                max={0.18}
+                                value={propiedades.escalera.contrapaso}
+                                onChange={(e) => setPropiedadEscalera({ contrapaso: parseFloat(e.target.value) })}
+                                className="w-14 bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Dirección:</span>
+                            <button
+                                onClick={() => setPropiedadEscalera({ direccion: propiedades.escalera.direccion === 'sube' ? 'baja' : 'sube' })}
+                                className={`px-2 h-6 rounded border border-gray-700 transition-colors ${propiedades.escalera.direccion === 'sube' ? 'text-blue-400 bg-blue-600/10 border-blue-600/50' : 'text-gray-400 bg-gray-800'}`}
+                            >
+                                {propiedades.escalera.direccion.toUpperCase()}
+                            </button>
+                        </div>
+                    </>
+                )
+            case 'column':
+                return (
+                    <>
+                        <div className="h-4 w-px bg-gray-800 mx-1 flex-shrink-0" />
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Forma:</span>
+                            <select
+                                value={propiedades.columna.forma}
+                                onChange={(e) => setPropiedadColumna({ forma: e.target.value as any })}
+                                className="bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500"
+                            >
+                                <option value="cuadrada">Cuadrada</option>
+                                <option value="circular">Circular</option>
+                            </select>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Dim (cm):</span>
+                            <input
+                                type="number"
+                                step={5}
+                                min={10}
+                                max={200}
+                                value={propiedades.columna.dimension * 100}
+                                onChange={(e) => setPropiedadColumna({ dimension: parseFloat(e.target.value) / 100 })}
+                                className="w-12 bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Mat:</span>
+                            <select
+                                value={propiedades.columna.material}
+                                onChange={(e) => setPropiedadColumna({ material: e.target.value as any })}
+                                className="bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500"
+                            >
+                                <option value="concreto">Concreto</option>
+                                <option value="acero">Acero</option>
+                                <option value="madera">Madera</option>
+                            </select>
+                        </div>
+                    </>
+                )
+            case 'dim':
+                return (
+                    <>
+                        <div className="h-4 w-px bg-gray-800 mx-1 flex-shrink-0" />
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Tipo:</span>
+                            <select
+                                value={propiedades.dim.tipo}
+                                onChange={(e) => setPropiedadDim({ tipo: e.target.value as any })}
+                                className="bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500"
+                            >
+                                <option value="lineal">Lineal</option>
+                                <option value="angular">Angular</option>
+                                <option value="radial">Radial</option>
+                            </select>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Estilo:</span>
+                            <select
+                                value={propiedades.dim.estilo}
+                                onChange={(e) => setPropiedadDim({ estilo: e.target.value as any })}
+                                className="bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500"
+                            >
+                                <option value="RNE">RNE</option>
+                                <option value="ISO">ISO</option>
+                                <option value="libre">Libre</option>
+                            </select>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Unidades:</span>
+                            <input
+                                type="checkbox"
+                                checked={propiedades.dim.mostrarUnidades}
+                                onChange={(e) => setPropiedadDim({ mostrarUnidades: e.target.checked })}
+                                className="w-3 h-3 accent-blue-500"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Dec:</span>
+                            <select
+                                value={propiedades.dim.decimales}
+                                onChange={(e) => setPropiedadDim({ decimales: parseInt(e.target.value) as any })}
+                                className="bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500"
+                            >
+                                <option value={0}>0</option>
+                                <option value={1}>1</option>
+                                <option value={2}>2</option>
+                            </select>
+                        </div>
+                    </>
+                )
+            case 'text':
+                return (
+                    <>
+                        <div className="h-4 w-px bg-gray-800 mx-1 flex-shrink-0" />
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Tamaño:</span>
+                            <input
+                                type="number"
+                                step={0.01}
+                                min={0.05}
+                                max={2}
+                                value={propiedades.texto.fontSize}
+                                onChange={(e) => setPropiedadTexto({ fontSize: parseFloat(e.target.value) })}
+                                className="w-14 bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Estilo:</span>
+                            <select
+                                value={propiedades.texto.estilo}
+                                onChange={(e) => setPropiedadTexto({ estilo: e.target.value as any })}
+                                className="bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500"
+                            >
+                                <option value="normal">Normal</option>
+                                <option value="título">Título</option>
+                                <option value="nota">Nota Técnica</option>
+                            </select>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Capa:</span>
+                            <input
+                                type="text"
+                                value={propiedades.texto.capa}
+                                onChange={(e) => setPropiedadTexto({ capa: e.target.value })}
+                                className="w-20 bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500"
+                            />
+                        </div>
+                    </>
+                )
+            case 'select':
+                return (
+                    <>
+                        <div className="h-4 w-px bg-gray-800 mx-1 flex-shrink-0" />
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Modo:</span>
+                            <div className="flex bg-gray-800 rounded p-0.5 border border-gray-700">
+                                {(['individual', 'caja', 'lazo'] as const).map((m) => (
+                                    <button
+                                        key={m}
+                                        onClick={() => setPropiedadSelect({ modo: m })}
+                                        className={`px-2 py-0.5 rounded text-[10px] transition-colors ${propiedades.select.modo === m ? 'bg-blue-600 text-white' : 'hover:bg-gray-700 text-gray-500'}`}
+                                    >
+                                        {m.charAt(0).toUpperCase()}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-gray-500">Filtro:</span>
+                            <select
+                                value={propiedades.select.filtro}
+                                onChange={(e) => setPropiedadSelect({ filtro: e.target.value as any })}
+                                className="bg-gray-800 border border-gray-700 rounded px-1 h-6 text-[11px] outline-none focus:border-blue-500"
+                            >
+                                <option value="todos">Todos</option>
+                                <option value="muros">Muros</option>
+                                <option value="puertas">Puertas</option>
+                                <option value="ventanas">Ventanas</option>
+                                <option value="cotas">Cotas</option>
+                            </select>
+                        </div>
+                    </>
+                )
         }
     }
 

@@ -38,14 +38,7 @@ function longitudMuro(m: Muro): number {
     return Math.sqrt((m.x2 - m.x1) ** 2 + (m.y2 - m.y1) ** 2)
 }
 
-// Detecta si un muro es horizontal o vertical
-function orientacionMuro(m: Muro): 'horizontal' | 'vertical' | 'diagonal' {
-    const dx = Math.abs(m.x2 - m.x1)
-    const dy = Math.abs(m.y2 - m.y1)
-    if (dy < 0.1) return 'horizontal'
-    if (dx < 0.1) return 'vertical'
-    return 'diagonal'
-}
+
 
 export function verificarRNE(
     muros: Muro[],

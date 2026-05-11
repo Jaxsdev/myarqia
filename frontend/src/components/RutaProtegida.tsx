@@ -1,9 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/useAuthStore'
 
 interface Props {
-    children: React.ReactNode
+    children: ReactNode
 }
 
 export default function RutaProtegida({ children }: Props) {
@@ -21,6 +21,8 @@ export default function RutaProtegida({ children }: Props) {
             </div>
         )
     }
+
+    if (!usuario) return null
 
     return <>{children}</>
 }
