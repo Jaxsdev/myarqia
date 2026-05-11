@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { 
-    IconFile, 
-    IconEdit, 
-    IconEye, 
-    IconSquarePlus, 
-    IconTools, 
+import {
+    IconFile,
+    IconEdit,
+    IconEye,
+    IconSquarePlus,
+    IconTools,
     IconHelp,
     IconDeviceFloppy,
     IconFileText,
@@ -44,21 +44,21 @@ import { useEditorStore } from '../../store/useEditorStore'
 export default function TopBar() {
     const navigate = useNavigate()
     const { proyectoActual, setProyectoActual } = useProyectoStore()
-    const { 
-        muros, puertas, ventanas, limpiarTodo, 
-        eliminarSeleccionado, seleccionarTodo, duplicarSeleccion 
+    const {
+        muros, puertas, ventanas, limpiarTodo,
+        eliminarSeleccionado, seleccionarTodo, duplicarSeleccion
     } = usePlanoStore()
     const { guardando, forzarGuardado } = useGuardadoAutomatico()
     const { exportar } = useExportarPDF()
     const { usuario } = useAuthStore()
-    const { 
-        vista, setVista, 
-        cotasVisibles, toggleCotas, 
-        nomenclaturaVisible, toggleNomenclatura, 
+    const {
+        vista, setVista,
+        cotasVisibles, toggleCotas,
+        nomenclaturaVisible, toggleNomenclatura,
         grillaVisible, toggleGrilla,
         modoClaro, toggleModoClaro
     } = useEditorStore()
-    
+
     const [editandoNombre, setEditandoNombre] = useState(false)
     const [nombre, setNombre] = useState(proyectoActual?.nombre || 'Proyecto sin título')
     const [menuAbierto, setMenuAbierto] = useState<string | null>(null)
@@ -227,7 +227,7 @@ export default function TopBar() {
     return (
         <header className="topbar h-10 bg-[#141720] border-b border-[#252B3B] flex items-center px-2.5 gap-1.5 flex-shrink-0 z-10">
             {/* Logo */}
-            <div 
+            <div
                 onClick={() => navigate('/dashboard')}
                 className="logo flex items-center cursor-pointer select-none mr-2"
             >
@@ -242,11 +242,10 @@ export default function TopBar() {
             <nav className="flex items-center relative" ref={dropdownRef}>
                 {menuItems.map((item) => (
                     <div key={item.label} className="relative">
-                        <button 
+                        <button
                             onClick={() => setMenuAbierto(menuAbierto === item.label ? null : item.label)}
-                            className={`tb-menu text-[11px] px-2 py-1 rounded-md transition-all border-none bg-transparent cursor-pointer flex items-center gap-1 mx-0.5 ${
-                                menuAbierto === item.label ? 'bg-[#252B3B] text-[#E8ECF0]' : 'text-[#8892A0] hover:bg-[#252B3B] hover:text-[#E8ECF0]'
-                            }`}
+                            className={`tb-menu text-[11px] px-2 py-1 rounded-md transition-all border-none bg-transparent cursor-pointer flex items-center gap-1 mx-0.5 ${menuAbierto === item.label ? 'bg-[#252B3B] text-[#E8ECF0]' : 'text-[#8892A0] hover:bg-[#252B3B] hover:text-[#E8ECF0]'
+                                }`}
                         >
                             {item.label}
                         </button>
@@ -264,9 +263,8 @@ export default function TopBar() {
                                                 subItem.action?.()
                                                 setMenuAbierto(null)
                                             }}
-                                            className={`w-full flex items-center justify-between px-3 py-1.5 text-[11px] hover:bg-[#2D8EFF20] transition-colors group ${
-                                                subItem.active ? 'bg-[#2D8EFF15] text-[#2D8EFF]' : 'text-[#C8D0DC] hover:text-[#E8ECF0]'
-                                            }`}
+                                            className={`w-full flex items-center justify-between px-3 py-1.5 text-[11px] hover:bg-[#2D8EFF20] transition-colors group ${subItem.active ? 'bg-[#2D8EFF15] text-[#2D8EFF]' : 'text-[#C8D0DC] hover:text-[#E8ECF0]'
+                                                }`}
                                         >
                                             <div className="flex items-center gap-2">
                                                 <span className={`${subItem.active ? 'text-[#2D8EFF]' : 'text-[#8892A0] group-hover:text-[#2D8EFF]'}`}>
@@ -290,13 +288,13 @@ export default function TopBar() {
 
             {/* Nombre del Proyecto y Estado */}
             <div className="flex items-center gap-1.5 ml-1">
-                <div 
+                <div
                     className="file-name flex items-center gap-1.5 text-[11px] text-[#E8ECF0] bg-[#252B3B] border border-[#252B3B] rounded-md px-2 py-0.75 cursor-pointer hover:border-[#8892A0] transition-colors"
                     onClick={() => setEditandoNombre(true)}
                 >
                     <IconFolder size={12} className="text-[#8892A0]" />
                     {editandoNombre ? (
-                        <input 
+                        <input
                             autoFocus
                             className="bg-transparent border-none outline-none text-[11px] w-32"
                             value={nombre}
@@ -313,11 +311,10 @@ export default function TopBar() {
                 </div>
 
                 {/* Badge de Guardado */}
-                <div className={`flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded border ${
-                    guardando 
-                    ? 'text-[#F39C12] bg-[#F39C1210] border-[#F39C1233]' 
-                    : 'text-[#2ECC71] bg-[#2ECC7110] border-[#2ECC7133]'
-                }`}>
+                <div className={`flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded border ${guardando
+                        ? 'text-[#F39C12] bg-[#F39C1210] border-[#F39C1233]'
+                        : 'text-[#2ECC71] bg-[#2ECC7110] border-[#2ECC7133]'
+                    }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${guardando ? 'bg-[#F39C12] animate-pulse' : 'bg-[#2ECC71]'}`} />
                     {guardando ? 'Guardando...' : 'Guardado'}
                 </div>
@@ -328,15 +325,15 @@ export default function TopBar() {
                 <input type="file" ref={dxfInputRef} className="hidden" accept=".dxf" onChange={(e) => console.log('Importar DXF:', e.target.files?.[0])} />
                 <input type="file" ref={imgInputRef} className="hidden" accept="image/*" onChange={(e) => console.log('Importar Imagen:', e.target.files?.[0])} />
 
-                <button 
+                <button
                     onClick={exportar}
                     className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-md border border-[#2D8EFF44] bg-[#2D8EFF18] text-[#2D8EFF] hover:bg-[#2D8EFF30] transition-all cursor-pointer"
                 >
                     <IconFileText size={14} />
                     <span>PDF</span>
                 </button>
-                
-                <button 
+
+                <button
                     onClick={() => descargarDXF(muros, puertas, ventanas, proyectoActual?.nombre || 'proyecto')}
                     className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-md border border-[#00C8D444] bg-[#00C8D418] text-[#00C8D4] hover:bg-[#00C8D430] transition-all cursor-pointer"
                 >

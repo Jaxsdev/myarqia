@@ -19,16 +19,44 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
 // Convierte la respuesta JSON de la IA en muros para el canvas
 function procesarRespuestaIA(texto: string) {
     try {
-        const limpio = texto.replace(/```json/g, '').replace(/```/g, '').trim()
-        const data = JSON.parse(limpio)
+        // Paso 1: limpiar backticks y markdown
+        const limpio = texto
+            .replace(/```json/gi, '')
+            .replace(/```/g, '')
+            .trim()
 
-        if (data.accion === 'generar_planta' && data.planta?.muros) {
+        // Paso 2: extraer solo el JSON entre { }
+        const inicio = limpio.indexOf('{')
+        const fin = limpio.lastIndexOf('}')
+        if (inicio === -1 || fin === -1) return texto
+
+        const soloJSON = limpio.substring(inicio, fin + 1)
+        const data = JSON.parse(soloJSON)
+
+        // Paso 3: procesar según la acción
+        if (data.accion === 'generar_planta' && data.planta) {
             const plano = data.planta
+
+            // Verificar que tenga muros
+            if (!plano.muros || plano.muros.length === 0) {
+                // Si no tiene muros, generarlos desde los ambientes
+                const murosGenerados: any[] = []
+                plano.ambientes?.forEach((amb: any) => {
+                    const { x, y, ancho, largo } = amb
+                    murosGenerados.push(
+                        { x1: x, y1: y, x2: x + ancho, y2: y, espesor: 0.25 },
+                        { x1: x + ancho, y1: y, x2: x + ancho, y2: y + largo, espesor: 0.25 },
+                        { x1: x + ancho, y1: y + largo, x2: x, y2: y + largo, espesor: 0.25 },
+                        { x1: x, y1: y + largo, x2: x, y2: y, espesor: 0.25 }
+                    )
+                })
+                plano.muros = murosGenerados
+            }
 
             // Limpiar el plano actual
             usePlanoStore.getState().limpiarTodo()
 
-            // ── Agregar MUROS usando el mismo formato que MyARQIA ──
+            // Agregar MUROS
             plano.muros?.forEach((m: any, i: number) => {
                 usePlanoStore.setState((s) => ({
                     muros: [...s.muros, {
@@ -38,15 +66,15 @@ function procesarRespuestaIA(texto: string) {
                         x2: Number(m.x2),
                         y2: Number(m.y2),
                         espesor: Number(m.espesor) || 0.25,
-                        altura: Number(m.altura) || 2.80,
-                        alturaBase: Number(m.alturaBase) || 0,
-                        material: (m.material as any) || 'concreto',
+                        altura: 2.80,
+                        alturaBase: 0,
+                        material: 'concreto' as const,
                         layer: 'A-WALL' as const,
                     }]
                 }))
             })
 
-            // ── Agregar PUERTAS si la IA las incluye ──────────────
+            // Agregar PUERTAS
             plano.puertas?.forEach((p: any, i: number) => {
                 usePlanoStore.setState((s) => ({
                     puertas: [...s.puertas, {
@@ -61,7 +89,7 @@ function procesarRespuestaIA(texto: string) {
                 }))
             })
 
-            // ── Agregar VENTANAS si la IA las incluye ─────────────
+            // Agregar VENTANAS
             plano.ventanas?.forEach((v: any, i: number) => {
                 usePlanoStore.setState((s) => ({
                     ventanas: [...s.ventanas, {
@@ -76,12 +104,12 @@ function procesarRespuestaIA(texto: string) {
                 }))
             })
 
-            // ── Guardar ambientes para etiquetas ──────────────────
+            // Agregar AMBIENTES para etiquetas
             if (plano.ambientes?.length > 0) {
                 usePlanoStore.getState().setAmbientes(plano.ambientes)
             }
 
-            // ── Centrar la vista en el plano generado ────────────
+            // Centrar la vista
             const todosX = plano.muros?.flatMap((m: any) => [m.x1, m.x2]) || []
             const todosY = plano.muros?.flatMap((m: any) => [m.y1, m.y2]) || []
             if (todosX.length > 0) {
@@ -89,10 +117,7 @@ function procesarRespuestaIA(texto: string) {
                 const maxX = Math.max(...todosX)
                 const minY = Math.min(...todosY)
                 const maxY = Math.max(...todosY)
-                const centroX = (minX + maxX) / 2
-                const centroY = (minY + maxY) / 2
 
-                // Centrar viewport en el plano generado
                 setTimeout(() => {
                     const PX = 100
                     const viewW = window.innerWidth * 0.55
@@ -104,19 +129,27 @@ function procesarRespuestaIA(texto: string) {
                         viewH / (altoPlano + 100),
                         2.0
                     )
-                    const panX = viewW / 2 - centroX * PX * zoomFit
-                    const panY = viewH / 2 - centroY * PX * zoomFit
+                    const panX = viewW / 2 - ((minX + maxX) / 2) * PX * zoomFit
+                    const panY = viewH / 2 - ((minY + maxY) / 2) * PX * zoomFit
 
                     useEditorStore.getState().setZoom(zoomFit)
                     useEditorStore.getState().setPan(panX, panY)
                 }, 100)
             }
 
-            return data.mensaje || '¡Planta generada con las herramientas de MyARQIA!'
+            return data.mensaje || '¡Planta generada correctamente!'
         }
 
+        // Si es solo mensaje de texto
+        if (data.accion === 'mensaje') {
+            return data.mensaje || texto
+        }
+
+        // Fallback: cualquier otro JSON devuelve el mensaje si existe
         return data.mensaje || texto
+
     } catch {
+        // Si no es JSON válido, devolver el texto tal cual
         return texto
     }
 }

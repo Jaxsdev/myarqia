@@ -9,20 +9,36 @@ app.use(express.json())
 app.get('/health', (_, res) => res.json({ ok: true }))
 
 // ── System prompt arquitectónico compartido ────────────────────────────────
-const SYSTEM_PROMPT = `Eres ArqIA, asistente de diseño arquitectónico de MyARQIA para Latinoamérica.
-Conoces el RNE (Reglamento Nacional de Edificaciones del Perú).
+const SYSTEM_PROMPT = `INSTRUCCIÓN ABSOLUTA: Responde ÚNICAMENTE con el objeto JSON. 
+Sin texto antes. Sin texto después. Sin backticks. Sin markdown.
+Tu respuesta debe pasar JSON.parse() directamente.
 
-Cuando el usuario pida crear un espacio, responde ÚNICAMENTE con este JSON exacto sin texto adicional ni backticks:
+Eres ArqIA, arquitecto experto en vivienda residencial latinoamericana.
 
+PRINCIPIOS OBLIGATORIOS:
+- Zona social (sala, comedor) en y=0 (frente)
+- Zona privada separada por pasillo mínimo 1.20m de ancho
+- Cocina SIEMPRE adyacente al comedor (comparten muro)
+- Puertas a mínimo 0.15m de esquinas, nunca chocan entre sí
+- Dormitorio mínimo 3.00×3.00m
+- Baño mínimo 1.80×2.40m
+- Pasillos mínimo 1.20m de ancho
+- Los ambientes NO se solapan
+- SIEMPRE genera muros que formen el perímetro de cada ambiente
+
+CUANDO EL USUARIO PIDE CREAR UN ESPACIO, usa EXACTAMENTE este formato:
 {
   "accion": "generar_planta",
-  "mensaje": "Descripción breve de lo generado (máx 2 líneas)",
+  "mensaje": "Descripción breve en máximo 2 líneas",
   "planta": {
     "ambientes": [
       { "nombre": "Sala", "x": 0, "y": 0, "ancho": 4.5, "largo": 3.5 }
     ],
     "muros": [
-      { "x1": 0, "y1": 0, "x2": 4.5, "y2": 0, "espesor": 0.25 }
+      { "x1": 0, "y1": 0, "x2": 4.5, "y2": 0, "espesor": 0.25 },
+      { "x1": 4.5, "y1": 0, "x2": 4.5, "y2": 3.5, "espesor": 0.25 },
+      { "x1": 4.5, "y1": 3.5, "x2": 0, "y2": 3.5, "espesor": 0.25 },
+      { "x1": 0, "y1": 3.5, "x2": 0, "y2": 0, "espesor": 0.25 }
     ],
     "puertas": [
       { "x": 1.0, "y": 0, "ancho": 0.90, "angulo": 90 }
@@ -33,131 +49,171 @@ Cuando el usuario pida crear un espacio, responde ÚNICAMENTE con este JSON exac
   }
 }
 
-REGLAS CRÍTICAS de geometría:
-1. Coordenadas desde origen (0,0) esquina inferior izquierda
-2. Los ambientes NO se superponen
-3. Muros exteriores: espesor 0.25m | Muros interiores: espesor 0.15m
-4. Las puertas van en los muros: angulo 90=norte, 0=este, 270=sur, 180=oeste
-5. Las ventanas van en muros exteriores con el mismo ángulo del muro
-6. SIEMPRE incluir puertas y ventanas en la respuesta
+REGLAS DE MUROS:
+- Muros exteriores: espesor 0.25
+- Muros interiores: espesor 0.15
+- Cada ambiente tiene 4 muros formando su perímetro
+- Los muros compartidos entre ambientes se dibujan UNA SOLA VEZ
+- Angulo puerta: 90=norte 0=este 270=sur 180=oeste
 
-DISTRIBUCIÓN para casas típicas:
-- Zona social (sala, comedor, cocina): parte frontal y=0
-- Zona íntima (dormitorios, baños): parte posterior
-- Cochera: costado o frente
-
-REGLAS RNE obligatorias:
-- Dormitorio simple: mín 8m², lado mín 2.5m
-- Dormitorio doble: mín 10m²
-- Sala: mín 12m²
-- Cocina: mín 5m², ventana al exterior obligatoria
-- Baño: mín 2.10m x 1.20m
-- Pasillo: mín 0.90m ancho
-- Cochera: 2.50m x 5.00m mínimo
-
-Si el usuario solo hace preguntas sin pedir crear:
+CUANDO EL USUARIO SOLO PREGUNTA SIN PEDIR CREAR:
 { "accion": "mensaje", "mensaje": "tu respuesta aquí" }
 
-Responde SIEMPRE en español. NUNCA texto fuera del JSON.`
+NUNCA uses otro formato. NUNCA agregues texto fuera del JSON.`
 
 function buildSystemPrompt(sistemaExtra) {
     return sistemaExtra ? `${SYSTEM_PROMPT}\n\nContexto adicional:\n${sistemaExtra}` : SYSTEM_PROMPT
 }
 
+// ── Validador de Planta ───────────────────────────────────────────────────
+function sesolapan(a, b) {
+    return !(a.x + (a.ancho || 0) <= b.x || b.x + (b.ancho || 0) <= a.x ||
+        a.y + (a.largo || 0) <= b.y || b.y + (b.largo || 0) <= a.y);
+}
 
-// ── Ruta Claude ────────────────────────────────────────────────────────────
+function validarPlanta(planta) {
+    if (!planta || !planta.ambientes) return { valido: true };
+    const errores = [];
+    const ambientes = planta.ambientes;
+
+    ambientes.forEach((amb, i) => {
+        const area = (amb.ancho || 0) * (amb.largo || 0);
+        const nombre = amb.nombre.toLowerCase();
+
+        ambientes.forEach((otro, j) => {
+            if (i !== j && sesolapan(amb, otro)) {
+                errores.push(`${amb.nombre} se solapa con ${otro.nombre}`);
+            }
+        });
+
+        if ((nombre.includes('dormitorio') || nombre.includes('habitación')) && area < 9) {
+            errores.push(`${amb.nombre}: área ${area.toFixed(2)}m² menor al mínimo habitable de 9m²`);
+        }
+        if (nombre.includes('pasillo') && Math.min(amb.ancho || 0, amb.largo || 0) < 1.2) {
+            errores.push(`${amb.nombre}: ancho menor al mínimo de 1.20m`);
+        }
+        if (nombre.includes('baño') && area < 3.5) {
+            errores.push(`${amb.nombre}: área insuficiente (${area.toFixed(2)}m²) para aparatos sanitarios`);
+        }
+    });
+
+    return { valido: errores.length === 0, errores };
+}
+
+// ── Ruta Claude con Re-intento ─────────────────────────────────────────────
 app.post('/api/chat', async (req, res) => {
     const { mensajes, sistemaExtra } = req.body
-    const systemPrompt = buildSystemPrompt(sistemaExtra)
+    let historialIntento = [...mensajes]
+    let intentos = 0
+    const MAX_INTENTOS = 2
 
-    try {
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': process.env.ANTHROPIC_API_KEY,
-                'anthropic-version': '2023-06-01',
-            },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-5',
-                max_tokens: 4096,
-                system: systemPrompt,
-                messages: mensajes,
-            }),
-        })
+    while (intentos <= MAX_INTENTOS) {
+        try {
+            const response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': process.env.ANTHROPIC_API_KEY,
+                    'anthropic-version': '2023-06-01',
+                },
+                body: JSON.stringify({
+                    model: 'claude-haiku-4-5',
+                    max_tokens: 4096,
+                    system: buildSystemPrompt(sistemaExtra),
+                    messages: historialIntento,
+                }),
+            })
 
-        const data = await response.json()
-        if (!response.ok) return res.status(500).json({ error: data.error?.message || 'Error Claude' })
+            const data = await response.json()
+            if (!response.ok) return res.status(500).json({ error: data.error?.message || 'Error Claude' })
 
-        res.json({ respuesta: data.content[0]?.text || '' })
-    } catch (err) {
-        console.error(err)
-        res.status(500).json({ error: 'Error interno del servidor' })
+            const textoRespuesta = data.content[0]?.text || ''
+
+            try {
+                const jsonRespuesta = JSON.parse(textoRespuesta)
+                if (jsonRespuesta.accion === 'generar_planta') {
+                    const validacion = validarPlanta(jsonRespuesta.planta)
+                    if (!validacion.valido) {
+                        console.log(`Intento ${intentos + 1} fallido:`, validacion.errores)
+                        historialIntento.push({ role: 'assistant', content: textoRespuesta })
+                        historialIntento.push({
+                            role: 'user',
+                            content: `ERROR DE DISEÑO DETECTADO. Por favor corrige los siguientes puntos y vuelve a generar el JSON:\n- ${validacion.errores.join('\n- ')}`
+                        })
+                        intentos++
+                        continue
+                    }
+                }
+                return res.json({ respuesta: textoRespuesta })
+            } catch (e) {
+                return res.json({ respuesta: textoRespuesta })
+            }
+        } catch (err) {
+            console.error(err)
+            return res.status(500).json({ error: 'Error interno' })
+        }
     }
+    res.status(500).json({ error: 'No se pudo generar un plano válido tras varios intentos' })
 })
 
-// ── Ruta Gemini ────────────────────────────────────────────────────────────
+// ── Ruta Gemini con Re-intento ─────────────────────────────────────────────
 app.post('/api/chat-gemini', async (req, res) => {
     const { mensajes, sistemaExtra } = req.body
-    const systemPrompt = buildSystemPrompt(sistemaExtra)
     const GEMINI_KEY = process.env.GEMINI_API_KEY
+    let historialIntento = [...mensajes]
+    let intentos = 0
+    const MAX_INTENTOS = 2
 
-    // Convertir historial al formato de Gemini
-    const contents = mensajes.map((m) => ({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: m.content }]
-    }))
+    while (intentos <= MAX_INTENTOS) {
+        const contents = historialIntento.map((m) => ({
+            role: m.role === 'user' ? 'user' : 'model',
+            parts: [{ text: m.content }]
+        }))
 
-    try {
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    system_instruction: { parts: [{ text: systemPrompt }] },
-                    contents,
-                    generationConfig: {
-                        maxOutputTokens: 4096,
-                        temperature: 0.7,
+        try {
+            const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        system_instruction: { parts: [{ text: buildSystemPrompt(sistemaExtra) }] },
+                        contents,
+                        generationConfig: { maxOutputTokens: 4096, temperature: 0.7 }
+                    }),
+                }
+            )
+
+            const data = await response.json()
+            if (!response.ok) return res.status(500).json({ error: data.error?.message || 'Error Gemini' })
+
+            const textoRespuesta = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+
+            try {
+                const jsonRespuesta = JSON.parse(textoRespuesta)
+                if (jsonRespuesta.accion === 'generar_planta') {
+                    const validacion = validarPlanta(jsonRespuesta.planta)
+                    if (!validacion.valido) {
+                        console.log(`Gemini Intento ${intentos + 1} fallido:`, validacion.errores)
+                        historialIntento.push({ role: 'assistant', content: textoRespuesta })
+                        historialIntento.push({
+                            role: 'user',
+                            content: `ERROR: El plano tiene fallos técnicos:\n${validacion.errores.join('\n')}\nCorrige y reenvía el JSON.`
+                        })
+                        intentos++
+                        continue
                     }
-                }),
+                }
+                return res.json({ respuesta: textoRespuesta })
+            } catch (e) {
+                return res.json({ respuesta: textoRespuesta })
             }
-        )
-
-        const data = await response.json()
-
-        if (!response.ok) {
-            // Si hay error de cuota, enviar un plano de demostración para que el usuario pueda probar
-            if (response.status === 429 || data.error?.code === 429) {
-                console.log("Gemini sin cuota. Retornando plano de prueba.")
-                return res.json({
-                    respuesta: JSON.stringify({
-                        "accion": "generar_planta",
-                        "mensaje": "⚠️ Google bloqueó tu API Key (límite 0). Para que puedas ver cómo funciona, generé este plano de prueba automáticamente con sus alturas y materiales listos.",
-                        "planta": {
-                            "muros": [
-                                { "x1": 0, "y1": 0, "x2": 6, "y2": 0, "espesor": 0.25, "altura": 2.80, "alturaBase": 0, "material": "concreto" },
-                                { "x1": 6, "y1": 0, "x2": 6, "y2": 5, "espesor": 0.25, "altura": 2.80, "alturaBase": 0, "material": "concreto" },
-                                { "x1": 6, "y1": 5, "x2": 0, "y2": 5, "espesor": 0.25, "altura": 2.80, "alturaBase": 0, "material": "concreto" },
-                                { "x1": 0, "y1": 5, "x2": 0, "y2": 0, "espesor": 0.25, "altura": 2.80, "alturaBase": 0, "material": "concreto" },
-                                { "x1": 3, "y1": 0, "x2": 3, "y2": 5, "espesor": 0.15, "altura": 2.80, "alturaBase": 0, "material": "tabique" }
-                            ]
-                        }
-                    })
-                })
-            }
-            console.error('Error Gemini:', data)
-            return res.status(500).json({ error: data.error?.message || 'Error Gemini' })
+        } catch (err) {
+            console.error(err)
+            return res.status(500).json({ error: 'Error interno' })
         }
-
-        const texto = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
-        res.json({ respuesta: texto })
-
-    } catch (err) {
-        console.error(err)
-        res.status(500).json({ error: 'Error interno del servidor' })
     }
+    res.status(500).json({ error: 'Gemini no pudo generar un plano válido' })
 })
 
 const PORT = process.env.PORT || 3001
