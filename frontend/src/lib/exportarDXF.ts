@@ -152,27 +152,36 @@ export function generarDXF(
             const mid = (sStart + sEnd) / 2
             const enApertura = aperturas.filter(a => mid >= a.start && mid <= a.end)
 
+            /**
+             * Dibuja un segmento de muro (tramo sólido) en el DXF.
+             * @param hMin Elevación base (Z)
+             * @param hMax Altura superior (Z)
+             * @param layer Capa de AutoCAD
+             */
             const dibujarTramo = (hMin: number, hMax: number, layer: string) => {
+                // Coordenadas globales de inicio y fin del segmento
                 const x1 = muro.x1 + cos * sStart; const y1 = muro.y1 + sin * sStart
                 const x2 = muro.x1 + cos * sEnd;   const y2 = muro.y1 + sin * sEnd
                 
-                // Recalculamos vértices para este segmento
+                // Creamos un muro temporal para calcular los 4 vértices del grosor
                 const segmentMuro = { ...muro, x1, y1, x2, y2 }
                 const { p1, p2, p3, p4 } = obtenerVerticesMuro(segmentMuro, muros)
                 const pts = [p1, p2, p3, p4]
 
-                // Representación como SOLID (relleno 3D)
+                // Representación como SOLID (relleno 3D compatible con AutoCAD)
+                // Usamos códigos 10-13 para X, 20-23 para Y, 30-33 para Z (elevación)
                 push('0', 'SOLID', '8', layer)
                 push('10', pts[0].x.toFixed(4), '20', pts[0].y.toFixed(4), '30', hMin.toFixed(4))
                 push('11', pts[1].x.toFixed(4), '21', pts[1].y.toFixed(4), '31', hMin.toFixed(4))
                 push('12', pts[3].x.toFixed(4), '22', pts[3].y.toFixed(4), '32', hMin.toFixed(4))
                 push('13', pts[2].x.toFixed(4), '23', pts[2].y.toFixed(4), '33', hMin.toFixed(4))
-                push('39', (hMax - hMin).toFixed(4)) // Altura del muro (thickness)
+                push('39', (hMax - hMin).toFixed(4)) // Código 39: Grosor/Altura (Thickness)
                 
-                // Representación como POLYLINE (contorno 3D)
+                // Representación como POLYLINE (contorno para visualización alámbrica)
                 push('0', 'POLYLINE', '8', layer, '66', '1', '70', '1', '39', (hMax - hMin).toFixed(4))
                 push('10', '0.0', '20', '0.0', '30', hMin.toFixed(4))
                 pts.forEach(p => {
+                    // Cada vértice de la polilínea con su elevación correspondiente
                     push('0', 'VERTEX', '8', layer, '10', p.x.toFixed(4), '20', p.y.toFixed(4), '30', hMin.toFixed(4))
                 })
                 push('0', 'SEQEND', '8', layer)
@@ -231,13 +240,19 @@ export function generarDXF(
         const nx = -sin * g; const ny = cos * g
         const h = v.alto || 1.20; const alf = v.alfeizar || 1.00
 
-        // Marco y vidrio con elevación Z (usamos tuplas explícitas para evitar errores de inferencia)
-        const marcoConfig: [number, string][] = [[-1, 'A-WIND'], [1, 'A-WIND'], [0, 'A-WIND']];
+        // Marco y vidrio con elevación Z (usamos tuplas explícitas para evitar errores de inferencia en el IDE)
+        const marcoConfig: [number, string][] = [
+            [-1, 'A-WIND'], // Línea exterior
+            [1, 'A-WIND'],  // Línea interior
+            [0, 'A-WIND']   // Eje central (vidrio)
+        ];
         
         marcoConfig.forEach(([m, layer]) => {
             push('0', 'LINE', '8', layer)
+            // Código 30 y 31: Elevación base de la ventana (Alféizar)
             push('10', (v.x + nx * m).toFixed(4), '20', (v.y + ny * m).toFixed(4), '30', alf.toFixed(4))
             push('11', (v.x + cos * w + nx * m).toFixed(4), '21', (v.y + sin * w + ny * m).toFixed(4), '31', alf.toFixed(4))
+            // Código 39: Altura de la ventana (Thickness)
             push('39', h.toFixed(4))
         })
     })

@@ -21,7 +21,7 @@ export function obtenerVerticesMuro(muro: Muro, todosLosMuros: Muro[]) {
     const dy = y2 - y1
     const len = Math.sqrt(dx * dx + dy * dy)
     
-    // Protección contra muros sin longitud o extremadamente cortos
+    // Protección contra muros sin longitud o extremadamente cortos (evita errores de división por cero y NaN)
     if (len < 0.001) {
         return {
             p1: { x: x1, y: y1 }, p2: { x: x1, y: y1 },
@@ -29,10 +29,11 @@ export function obtenerVerticesMuro(muro: Muro, todosLosMuros: Muro[]) {
         }
     }
 
+    // Normales para el espesor del muro (perpendicular a la dirección del muro)
     const nx = (-dy / len) * (espesor / 2)
     const ny = (dx / len) * (espesor / 2)
 
-    // Puntos base de las dos caras del muro
+    // Puntos base de las dos caras del muro (cara positiva y cara negativa)
     const cara_pos_a = { x: x1 + nx, y: y1 + ny }
     const cara_pos_b = { x: x2 + nx, y: y2 + ny }
     const cara_neg_a = { x: x1 - nx, y: y1 - ny }
