@@ -32,7 +32,9 @@ function intersLineas(a1: Vec2, a2: Vec2, b1: Vec2, b2: Vec2): Vec2 | null {
     return { x: a1.x + t * dax, y: a1.y + t * day }
 }
 
-const UMBRAL = 12
+// Umbral en píxeles de pantalla para detección de uniones — se recalcula en cada render
+// como 0.10m * PX * zoom para mantenerse constante en el espacio del mundo
+function umbralPx(zoom: number) { return 0.10 * PX * zoom }
 
 export default function CapaUniones({ muros, puertas, ventanas, zoom, panX, panY, modoClaro }: Props) {
     if (muros.length === 0) return null
@@ -48,6 +50,7 @@ export default function CapaUniones({ muros, puertas, ventanas, zoom, panX, panY
                 if (!raw) return
 
                 const caras = muros.map((m) => calcularCarasMuro(m, zoom, panX, panY))
+                const UMBRAL = umbralPx(zoom)
 
                 // Calcular polígonos ajustados con intersecciones en mitra
                 const polys = muros.map((_muro, i) => {
