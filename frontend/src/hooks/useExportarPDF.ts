@@ -3,7 +3,10 @@ import { usePlanoStore } from '../store/usePlanoStore'
 
 export function useExportarPDF() {
     const { proyectoActual } = useProyectoStore()
-    const { muros, puertas, ventanas } = usePlanoStore()
+    const { 
+        muros, puertas, ventanas, escaleras, 
+        columnas, cotas, textos, areas, ambientes 
+    } = usePlanoStore()
 
     const exportar = async () => {
         const { jsPDF } = await import('jspdf')
@@ -17,21 +20,20 @@ export function useExportarPDF() {
         const H = doc.internal.pageSize.getHeight()
 
         // ── Capturar todos los canvas del DOM y componerlos ──────
-        // Konva crea un <canvas> por cada Layer. Los composemos manualmente
-        // para capturar exactamente lo que se ve en pantalla (incluye muros).
-        const areaH = H - 40
+        const areaH = H - 45
         const capas = Array.from(document.querySelectorAll('canvas')) as HTMLCanvasElement[]
         if (capas.length > 0) {
             const composite = document.createElement('canvas')
+            // Aumentar resolución para PDF (x2)
             composite.width = capas[0].width
             composite.height = capas[0].height
             const ctx2d = composite.getContext('2d')!
 
-            // Fondo blanco para el PDF (el editor tiene fondo oscuro)
+            // Fondo blanco para el PDF
             ctx2d.fillStyle = '#ffffff'
             ctx2d.fillRect(0, 0, composite.width, composite.height)
 
-            // Dibujar cada capa encima de la anterior
+            // Dibujar cada capa
             capas.forEach((c) => ctx2d.drawImage(c, 0, 0))
 
             const imgData = composite.toDataURL('image/png', 1.0)
@@ -40,63 +42,75 @@ export function useExportarPDF() {
 
         // ── Cajetín profesional ────────────────────────────────
         const cY = H - 38  // Y donde empieza el cajetín
+        const cW = W - 20
 
-        // Borde del cajetín
-        doc.setDrawColor(50, 50, 50)
-        doc.setLineWidth(0.5)
-        doc.rect(10, cY, W - 20, 28)
+        // Borde exterior
+        doc.setDrawColor(30, 30, 30)
+        doc.setLineWidth(0.6)
+        doc.rect(10, cY, cW, 30)
 
-        // Línea divisoria vertical
-        doc.line(W - 80, cY, W - 80, H - 10)
-        doc.line(W - 80, cY + 14, W - 20, cY + 14)
+        // Divisiones verticales
+        doc.setLineWidth(0.2)
+        doc.line(70, cY, 70, H - 8)     // Sección Logo/Nombre
+        doc.line(W - 90, cY, W - 90, H - 8) // Sección Info Técnica
 
         // Logo / Nombre del sistema
-        doc.setFontSize(14)
+        doc.setFontSize(16)
         doc.setTextColor(47, 129, 247)
         doc.setFont('helvetica', 'bold')
-        doc.text('MyARQIA', 16, cY + 9)
+        doc.text('MyARQIA', 16, cY + 10)
 
-        doc.setFontSize(7)
-        doc.setTextColor(100, 100, 100)
-        doc.setFont('helvetica', 'normal')
-        doc.text('Plataforma de Diseño Arquitectónico con IA', 16, cY + 15)
-
-        // Nombre del proyecto
-        doc.setFontSize(11)
-        doc.setTextColor(30, 30, 30)
-        doc.setFont('helvetica', 'bold')
-        doc.text(nombreProyecto, 16, cY + 23)
-
-        // Info técnica (columna derecha)
         doc.setFontSize(8)
-        doc.setTextColor(50, 50, 50)
+        doc.setTextColor(80, 80, 80)
         doc.setFont('helvetica', 'normal')
+        doc.text('Diseño Arquitectónico Inteligente', 16, cY + 16)
+        doc.text('Validado según RNE', 16, cY + 21)
 
-        const col2 = W - 78
-        doc.text('ESCALA:', col2, cY + 6); doc.setFont('helvetica', 'bold')
-        doc.text('1 : 100', col2 + 20, cY + 6); doc.setFont('helvetica', 'normal')
+        // Nombre del proyecto y Ubicación
+        doc.setFontSize(12)
+        doc.setTextColor(0, 0, 0)
+        doc.setFont('helvetica', 'bold')
+        doc.text(nombreProyecto.toUpperCase(), 75, cY + 10)
+        
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        doc.text('PROPIETARIO:', 75, cY + 18); doc.setFont('helvetica', 'bold')
+        doc.text('CLIENTE MYARQIA', 105, cY + 18); doc.setFont('helvetica', 'normal')
+        
+        doc.text('DIBUJO:', 75, cY + 24); doc.setFont('helvetica', 'bold')
+        doc.text('AGENTE IA ARQIA', 105, cY + 24); doc.setFont('helvetica', 'normal')
 
-        doc.text('FECHA:', col2, cY + 12); doc.setFont('helvetica', 'bold')
-        doc.text(fecha, col2 + 20, cY + 12); doc.setFont('helvetica', 'normal')
+        // Info técnica (Resumen de áreas y elementos)
+        const col3 = W - 85
+        doc.setFontSize(7)
+        doc.setTextColor(50, 50, 50)
+        
+        const areaTechada = areas.reduce((sum, a) => sum + (a.area || 0), 0)
 
-        doc.text('MUROS:', col2, cY + 18); doc.setFont('helvetica', 'bold')
-        doc.text(String(muros.length), col2 + 20, cY + 18); doc.setFont('helvetica', 'normal')
+        const drawInfoRow = (label: string, value: string, y: number) => {
+            doc.setFont('helvetica', 'normal')
+            doc.text(label, col3, y)
+            doc.setFont('helvetica', 'bold')
+            doc.text(value, W - 15, y, { align: 'right' })
+        }
 
-        doc.text('PUERTAS:', col2, cY + 24); doc.setFont('helvetica', 'bold')
-        doc.text(`${puertas.length} puertas  ·  ${ventanas.length} ventanas`, col2 + 22, cY + 24)
+        drawInfoRow('ÁREA TOTAL:', `${areaTechada.toFixed(2)} m2`, cY + 6)
+        drawInfoRow('ESCALA:', '1 : 100', cY + 12)
+        drawInfoRow('FECHA:', fecha, cY + 18)
+        drawInfoRow('LÁMINA:', 'A-01', cY + 24)
 
-        // Línea de norma
+        // Leyenda inferior
         doc.setFontSize(6)
         doc.setTextColor(150, 150, 150)
         doc.text(
-            'Plano generado con MyARQIA · Verificar cumplimiento del RNE antes de tramitar permisos de construcción',
-            W / 2, H - 12,
+            'Generado automáticamente por MyARQIA. Este documento es una representación técnica preliminar.',
+            W / 2, H - 4,
             { align: 'center' }
         )
 
         // Guardar
-        doc.save(`${nombreProyecto.replace(/\s+/g, '_')}_plano.pdf`)
+        doc.save(`${nombreProyecto.replace(/\s+/g, '_')}_plano_arquitectonico.pdf`)
     }
 
     return { exportar }
-}
+}

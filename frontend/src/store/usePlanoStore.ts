@@ -101,6 +101,7 @@ interface PlanoState {
     actualizarTexto: (id: string, cambios: Partial<ElementoTexto>) => void
     seleccionarTodo: () => void
     duplicarSeleccion: () => void
+    autoSanarPlano: () => void
 }
 
 export const usePlanoStore = create<PlanoState>((set, get) => ({
@@ -267,6 +268,9 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
             puntoInicio: continuar ? puntoFin : null,
             puntoFin: continuar ? puntoFin : null,
         }))
+
+        // Ejecutar auto-sanación después de añadir un muro
+        get().autoSanarPlano()
     },
 
     terminarPuerta: (props, pManual?: Punto) => {
@@ -280,24 +284,28 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
         let dist = Math.sqrt(dx * dx + dy * dy)
         let ang = Math.atan2(dy, dx)
 
-        // Buscar muro más cercano para asociar
+        // Buscar muro más cercano para asociar (usamos el punto medio para mayor precisión)
+        const pMid = { x: (pIn.x + pFi.x) / 2, y: (pIn.y + pFi.y) / 2 }
+        
         let muroCercanoId = ''
         let minDist = 0.5 
         let anguloMuro = 0
+        let posCentrada = pMid
         
         muros.forEach(m => {
             const l2 = (m.x2 - m.x1) ** 2 + (m.y2 - m.y1) ** 2
             if (l2 === 0) return
-            let t = ((pIn.x - m.x1) * (m.x2 - m.x1) + (pIn.y - m.y1) * (m.y2 - m.y1)) / l2
+            let t = ((pMid.x - m.x1) * (m.x2 - m.x1) + (pMid.y - m.y1) * (m.y2 - m.y1)) / l2
             t = Math.max(0, Math.min(1, t))
             const px = m.x1 + t * (m.x2 - m.x1)
             const py = m.y1 + t * (m.y2 - m.y1)
-            const d = Math.sqrt((pIn.x - px) ** 2 + (pIn.y - py) ** 2)
+            const d = Math.sqrt((pMid.x - px) ** 2 + (pMid.y - py) ** 2)
             
             if (d < minDist) {
                 minDist = d
                 muroCercanoId = m.id
                 anguloMuro = Math.atan2(m.y2 - m.y1, m.x2 - m.x1)
+                posCentrada = { x: px, y: py }
             }
         })
 
@@ -313,7 +321,7 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
             puertas: [...s.puertas, {
                 id: uid('puerta'),
                 muro_id: muroCercanoId,
-                x: pIn.x, y: pIn.y,
+                x: posCentrada.x, y: posCentrada.y,
                 rotacion: ang,
                 ancho: dist,
                 sentido: props.sentido,
@@ -348,23 +356,27 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
         let dist = Math.sqrt(dx * dx + dy * dy)
         let ang = Math.atan2(dy, dx)
 
-        // Buscar muro más cercano para asociar
+        // Buscar muro más cercano (punto medio)
+        const pMid = { x: (pIn.x + pFi.x) / 2, y: (pIn.y + pFi.y) / 2 }
+        
         let muroCercanoId = ''
         let minDist = 0.5 
         let anguloMuro = 0
+        let posCentrada = pMid
         muros.forEach(m => {
             const l2 = (m.x2 - m.x1) ** 2 + (m.y2 - m.y1) ** 2
             if (l2 === 0) return
-            let t = ((pIn.x - m.x1) * (m.x2 - m.x1) + (pIn.y - m.y1) * (m.y2 - m.y1)) / l2
+            let t = ((pMid.x - m.x1) * (m.x2 - m.x1) + (pMid.y - m.y1) * (m.y2 - m.y1)) / l2
             t = Math.max(0, Math.min(1, t))
             const px = m.x1 + t * (m.x2 - m.x1)
             const py = m.y1 + t * (m.y2 - m.y1)
-            const d = Math.sqrt((pIn.x - px) ** 2 + (pIn.y - py) ** 2)
+            const d = Math.sqrt((pMid.x - px) ** 2 + (pMid.y - py) ** 2)
             
             if (d < minDist) {
                 minDist = d
                 muroCercanoId = m.id
                 anguloMuro = Math.atan2(m.y2 - m.y1, m.x2 - m.x1)
+                posCentrada = { x: px, y: py }
             }
         })
 
@@ -379,7 +391,7 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
             ventanas: [...s.ventanas, {
                 id: uid('ventana'),
                 muro_id: muroCercanoId,
-                x: pIn.x, y: pIn.y,
+                x: posCentrada.x, y: posCentrada.y,
                 rotacion: ang,
                 ancho: dist,
                 alto: props.alto,
@@ -738,12 +750,55 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
         }))
     },
 
+    autoSanarPlano: () => {
+        const { muros } = get()
+        if (muros.length === 0) return
+
+        const THRESHOLD = 0.15 // 15cm de radio de atracción
+        let huboCambios = false
+        const nuevosMuros = [...muros]
+
+        for (let i = 0; i < nuevosMuros.length; i++) {
+            const m1 = nuevosMuros[i]
+            const puntos1 = [
+                { id: 'x1y1', x: m1.x1, y: m1.y1 },
+                { id: 'x2y2', x: m1.x2, y: m1.y2 }
+            ]
+
+            puntos1.forEach(p1 => {
+                // Buscar otros muros para snap
+                for (let j = 0; j < nuevosMuros.length; j++) {
+                    if (i === j) continue
+                    const m2 = nuevosMuros[j]
+                    
+                    // Distancia a inicio de m2
+                    const d1 = Math.sqrt((p1.x - m2.x1) ** 2 + (p1.y - m2.y1) ** 2)
+                    if (d1 > 0 && d1 < THRESHOLD) {
+                        if (p1.id === 'x1y1') { m1.x1 = m2.x1; m1.y1 = m2.y1 }
+                        else { m1.x2 = m2.x1; m1.y2 = m2.y1 }
+                        huboCambios = true
+                    }
+
+                    // Distancia a fin de m2
+                    const d2 = Math.sqrt((p1.x - m2.x2) ** 2 + (p1.y - m2.y2) ** 2)
+                    if (d2 > 0 && d2 < THRESHOLD) {
+                        if (p1.id === 'x1y1') { m1.x1 = m2.x2; m1.y1 = m2.y2 }
+                        else { m1.x2 = m2.x2; m1.y2 = m2.y2 }
+                        huboCambios = true
+                    }
+                }
+            })
+        }
+
+        if (huboCambios) {
+            set({ muros: nuevosMuros })
+        }
+    },
+
     limpiarTodo: () => set({
         muros: [], puertas: [], ventanas: [], escaleras: [], columnas: [], cotas: [], textos: [], areas: [],
         dibujando: false, puntoInicio: null, puntoFin: null, puntoAux: null, pasoDibujo: 0, puntosPoligono: [],
         idsSeleccionados: [],
-
-        // Agrega esto para limpiar ambientes también
         ambientes: [],
     }),
 }))

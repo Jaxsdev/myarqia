@@ -58,38 +58,64 @@ function procesarRespuestaIA(texto: string) {
                 })
                 plano.muros = murosGenerados
             }
+            
+            // 3.5: Vincular PUERTAS y VENTANAS a MUROS
+            const murosNuevos = plano.muros.map((m: any, i: number) => ({
+                id: `muro-ia-${i}-${Date.now()}`,
+                x1: safeNum(m.x1, 0),
+                y1: safeNum(m.y1, 0),
+                x2: safeNum(m.x2, 0),
+                y2: safeNum(m.y2, 0),
+                espesor: safeNum(m.espesor, 0.15),
+                altura: safeNum(m.altura, 2.40),
+                tipo: m.tipo || 'simple',
+                material: m.material || 'ladrillo',
+                alineacion: m.alineacion || 'centro',
+                layer: 'A-WALL' as const,
+            }))
+
+            // Helper para encontrar el muro más cercano y proyectar
+            const snapAMuro = (px: number, py: number) => {
+                let mejorMuroId = ''
+                let mejorPunto = { x: px, y: py }
+                let mejorAngulo = 0
+                let minDist = 0.5 // 50cm de radio máximo para snap automático
+
+                murosNuevos.forEach((m: any) => {
+                    const l2 = (m.x2 - m.x1) ** 2 + (m.y2 - m.y1) ** 2
+                    if (l2 === 0) return
+                    let t = ((px - m.x1) * (m.x2 - m.x1) + (py - m.y1) * (m.y2 - m.y1)) / l2
+                    t = Math.max(0, Math.min(1, t))
+                    const pX = m.x1 + t * (m.x2 - m.x1)
+                    const pY = m.y1 + t * (m.y2 - m.y1)
+                    const d = Math.sqrt((px - pX) ** 2 + (py - pY) ** 2)
+
+                    if (d < minDist) {
+                        minDist = d
+                        mejorMuroId = m.id
+                        mejorPunto = { x: pX, y: pY }
+                        mejorAngulo = Math.atan2(m.y2 - m.y1, m.x2 - m.x1)
+                    }
+                })
+                return { id: mejorMuroId, ...mejorPunto, angulo: mejorAngulo }
+            }
 
             // Limpiar el plano actual
             usePlanoStore.getState().limpiarTodo()
 
             // Agregar MUROS
-            plano.muros?.forEach((m: any, i: number) => {
-                usePlanoStore.setState((s) => ({
-                    muros: [...s.muros, {
-                        id: `muro-ia-${i}-${Date.now()}`,
-                        x1: safeNum(m.x1, 0),
-                        y1: safeNum(m.y1, 0),
-                        x2: safeNum(m.x2, 0),
-                        y2: safeNum(m.y2, 0),
-                        espesor: safeNum(m.espesor, 0.15),
-                        altura: safeNum(m.altura, 2.40),
-                        tipo: m.tipo || 'simple',
-                        material: m.material || 'ladrillo',
-                        alineacion: m.alineacion || 'centro',
-                        layer: 'A-WALL' as const,
-                    }]
-                }))
-            })
+            usePlanoStore.setState({ muros: murosNuevos })
 
             // Agregar PUERTAS
             plano.puertas?.forEach((p: any, i: number) => {
+                const snapped = snapAMuro(safeNum(p.x, 0), safeNum(p.y, 0))
                 usePlanoStore.setState((s) => ({
                     puertas: [...s.puertas, {
                         id: `puerta-ia-${i}-${Date.now()}`,
-                        muro_id: '',
-                        x: safeNum(p.x, 0),
-                        y: safeNum(p.y, 0),
-                        rotacion: safeNum(p.rotacion, 0),
+                        muro_id: snapped.id,
+                        x: snapped.x,
+                        y: snapped.y,
+                        rotacion: snapped.id ? snapped.angulo : (safeNum(p.angulo, 0) * Math.PI / 180),
                         ancho: safeNum(p.ancho, 0.90),
                         sentido: p.sentido || 'derecha',
                         angulo: safeNum(p.angulo, 90),
@@ -101,13 +127,14 @@ function procesarRespuestaIA(texto: string) {
 
             // Agregar VENTANAS
             plano.ventanas?.forEach((v: any, i: number) => {
+                const snapped = snapAMuro(safeNum(v.x, 0), safeNum(v.y, 0))
                 usePlanoStore.setState((s) => ({
                     ventanas: [...s.ventanas, {
                         id: `ventana-ia-${i}-${Date.now()}`,
-                        muro_id: '',
-                        x: safeNum(v.x, 0),
-                        y: safeNum(v.y, 0),
-                        rotacion: safeNum(v.rotacion, 0),
+                        muro_id: snapped.id,
+                        x: snapped.x,
+                        y: snapped.y,
+                        rotacion: snapped.id ? snapped.angulo : (safeNum(v.rotacion, 0) * Math.PI / 180),
                         ancho: safeNum(v.ancho, 1.20),
                         alto: safeNum(v.alto, 1.20),
                         alfeizar: safeNum(v.alfeizar, 0.90),

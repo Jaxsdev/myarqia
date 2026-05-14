@@ -11,12 +11,15 @@ import { usePlanoStore } from '../store/usePlanoStore'
 import type { Proyecto } from '../types'
 import TopBar from '../components/editor/TopBar'
 import ContextBar from '../components/editor/ContextBar'
+import { useEditorStore } from '../store/useEditorStore'
+import Canvas3D from '../components/editor/Canvas3D'
 
 export default function Editor() {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
     const { setProyectoActual } = useProyectoStore()
     const { cargarDatos } = usePlanoStore()
+    const { vista } = useEditorStore()
     const [cargando, setCargando] = useState(true)
 
     useEffect(() => {
@@ -69,8 +72,8 @@ export default function Editor() {
                 <LeftPanel />
                 <ToolsSidebar />
                 <div className="flex flex-col flex-1 overflow-hidden relative">
-                    <div className="flex-1 overflow-hidden">
-                        <CanvasEditor />
+                    <div className="flex-1 overflow-hidden relative">
+                        {vista === '3d' ? <Canvas3D /> : <CanvasEditor />}
                     </div>
                     <HUD />
                 </div>

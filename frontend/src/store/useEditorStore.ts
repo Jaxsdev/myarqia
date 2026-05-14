@@ -58,8 +58,10 @@ interface EditorState {
     zoom: number
     panX: number
     panY: number
+    rotation: number
     setZoom: (z: number) => void
     setPan: (x: number, y: number) => void
+    setRotation: (r: number) => void
 
     // Herramienta activa
     herramienta: Herramienta
@@ -113,8 +115,10 @@ export const useEditorStore = create<EditorState>((set) => ({
     zoom: 1,
     panX: 0,
     panY: 0,
+    rotation: 0,
     setZoom: (zoom) => set({ zoom }),
     setPan: (panX, panY) => set({ panX, panY }),
+    setRotation: (rotation) => set({ rotation }),
 
     herramienta: 'select',
     setHerramienta: (herramienta) => set({ herramienta }),

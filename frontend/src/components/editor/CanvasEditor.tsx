@@ -11,6 +11,13 @@ import ElementoArea from './ElementoArea'
 import PreviewMuro from './PreviewMuro'
 import PreviewGhost from './PreviewGhost'
 import PreviewElemento from './PreviewElemento'
+import { 
+    IconMagnet, 
+    IconPlus, 
+    IconMinus, 
+    IconArrowsMaximize, 
+    IconGrid4x4 
+} from '@tabler/icons-react'
 import { useEditorStore } from '../../store/useEditorStore'
 import { usePlanoStore } from '../../store/usePlanoStore'
 import type { Punto } from '../../types'
@@ -36,6 +43,7 @@ export default function CanvasEditor() {
     const [tamano, setTamano] = useState({ width: 800, height: 600 })
     const arrastrando = useRef(false)
     const moviendo = useRef(false)
+    const rotando = useRef(false)
     const cuadroSeleccion = useRef(false)
     const ultimaPosicion = useRef({ x: 0, y: 0 })
     const posInicioMover = useRef<Punto | null>(null)
@@ -46,10 +54,11 @@ export default function CanvasEditor() {
         setCursor, herramienta, setHerramienta,
         snapActivo, toggleSnap, snapSize,
         orthoActivo, toggleOrtho,
-        cotasVisibles, nomenclaturaVisible, grillaVisible,
+        cotasVisibles, nomenclaturaVisible, grillaVisible, toggleGrilla,
         modoClaro, modalConfigAbierto,
         propiedades,
         cursorX, cursorY,
+        rotation, setRotation
     } = useEditorStore()
 
     // --- Store: plano ---
@@ -61,7 +70,7 @@ export default function CanvasEditor() {
         terminarEscalera, terminarColumna, terminarCota, terminarTexto, terminarArea,
         cancelarDibujo, seleccionar, eliminarSeleccionado,
         moverSeleccion, pasoDibujo,
-        undo, redo, saveHistory, capas
+        undo, redo, saveHistory, capas, capaActiva
     } = usePlanoStore()
 
     const tema = modoClaro ? TEMA_CLARO : TEMA_OSCURO
@@ -150,17 +159,54 @@ export default function CanvasEditor() {
         return () => window.removeEventListener('keydown', handler)
     }, [cancelarDibujo, setHerramienta, toggleOrtho, toggleSnap, eliminarSeleccionado, undo, redo])
 
-    const getPunto = useCallback((e: MouseEvent<HTMLDivElement>): Punto => {
+    const getPunto = useCallback((e: MouseEvent | { clientX: number, clientY: number }): Punto => {
+        if (!contenedorRef.current) return { x: 0, y: 0 }
         const rect = contenedorRef.current!.getBoundingClientRect()
-        let mx = screenToWorld(e.clientX - rect.left, panX, zoom)
-        let my = screenToWorld(e.clientY - rect.top, panY, zoom)
+        let x = e.clientX - rect.left
+        let y = e.clientY - rect.top
 
-        if (snapActivo) {
-            // Radio de snap dinámico (aprox 15px en pantalla)
-            const snapRadius = 15 / (PX_POR_METRO * zoom)
-            let snapped = false
+        // Ajuste por rotación (rotar el punto del mouse inversamente respecto al centro)
+        if (rotation !== 0) {
+            const cx = tamano.width / 2
+            const cy = tamano.height / 2
+            const rad = (-rotation * Math.PI) / 180
+            const cos = Math.cos(rad)
+            const sin = Math.sin(rad)
+            const dx = x - cx
+            const dy = y - cy
+            x = cx + (dx * cos - dy * sin)
+            y = cy + (dx * sin + dy * cos)
+        }
 
-            // 1. Snap a Extremos de Muros (Prioridad Máxima)
+        let mx = screenToWorld(x, panX, zoom)
+        let my = screenToWorld(y, panY, zoom)
+
+        // --- Lógica de Snap (Atracción) ---
+        // Radio de snap dinámico (aprox 15px en pantalla para puntos, 30px para muros)
+        const snapRadius = 15 / (PX_POR_METRO * zoom)
+        const wallSnapRadius = 30 / (PX_POR_METRO * zoom)
+        let snapped = false
+
+        // 1. Snap Obligatorio/Magnético a Muros para Puertas y Ventanas
+        // (Incluso si snapActivo es false, porque estos elementos deben ir en muros)
+        if (herramienta === 'door' || herramienta === 'window') {
+            for (const m of murosV) {
+                const l2 = (m.x2 - m.x1) ** 2 + (m.y2 - m.y1) ** 2
+                if (l2 === 0) continue
+                let t = ((mx - m.x1) * (m.x2 - m.x1) + (my - m.y1) * (m.y2 - m.y1)) / l2
+                t = Math.max(0, Math.min(1, t))
+                const px = m.x1 + t * (m.x2 - m.x1)
+                const py = m.y1 + t * (m.y2 - m.y1)
+                const d = Math.sqrt((mx - px) ** 2 + (my - py) ** 2)
+                
+                if (d < wallSnapRadius) {
+                    mx = px; my = py; snapped = true; break
+                }
+            }
+        }
+
+        if (snapActivo && !snapped) {
+            // 2. Snap a Extremos de Muros
             for (const m of muros) {
                 const d1 = Math.sqrt((mx - m.x1) ** 2 + (my - m.y1) ** 2)
                 const d2 = Math.sqrt((mx - m.x2) ** 2 + (my - m.y2) ** 2)
@@ -171,7 +217,7 @@ export default function CanvasEditor() {
                     mx = m.x2; my = m.y2; snapped = true; break
                 }
                 
-                // 2. Snap a Puntos Medios de Muros
+                // 3. Snap a Puntos Medios de Muros
                 const midX = (m.x1 + m.x2) / 2
                 const midY = (m.y1 + m.y2) / 2
                 const dm = Math.sqrt((mx - midX) ** 2 + (my - midY) ** 2)
@@ -180,7 +226,7 @@ export default function CanvasEditor() {
                 }
             }
 
-            // 3. Snap a Centros de Elementos (Columnas, Escaleras)
+            // 4. Snap a Centros de Elementos (Columnas, Escaleras)
             if (!snapped) {
                 for (const c of columnas) {
                     const d = Math.sqrt((mx - c.x) ** 2 + (my - c.y) ** 2)
@@ -191,22 +237,6 @@ export default function CanvasEditor() {
                     const midY = (e.y1 + e.y2) / 2
                     const d = Math.sqrt((mx - midX) ** 2 + (my - midY) ** 2)
                     if (d < snapRadius) { mx = midX; my = midY; snapped = true; break }
-                }
-            }
-
-            // 4. Snap a bordes de muros (para inserción de puertas/ventanas)
-            if (!snapped && (herramienta === 'door' || herramienta === 'window')) {
-                for (const m of murosV) {
-                    const l2 = (m.x2 - m.x1) ** 2 + (m.y2 - m.y1) ** 2
-                    if (l2 === 0) continue
-                    let t = ((mx - m.x1) * (m.x2 - m.x1) + (my - m.y1) * (m.y2 - m.y1)) / l2
-                    t = Math.max(0, Math.min(1, t))
-                    const px = m.x1 + t * (m.x2 - m.x1)
-                    const py = m.y1 + t * (m.y2 - m.y1)
-                    const d = Math.sqrt((mx - px) ** 2 + (my - py) ** 2)
-                    if (d < snapRadius) {
-                        mx = px; my = py; snapped = true; break
-                    }
                 }
             }
 
@@ -240,7 +270,7 @@ export default function CanvasEditor() {
         }
 
         return { x: mx, y: my }
-    }, [panX, panY, zoom, snapActivo, snapSize, orthoActivo, puntoInicio, muros, herramienta])
+    }, [panX, panY, zoom, rotation, tamano.width, tamano.height, snapActivo, snapSize, orthoActivo, puntoInicio, muros, herramienta])
 
     // --- Wheel: zoom centrado en el cursor ---
     const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
@@ -257,10 +287,23 @@ export default function CanvasEditor() {
     // --- MouseDown: inicia o termina dibujo ---
     const handleMouseDown = useCallback((e: MouseEvent<HTMLDivElement>) => {
         const p = getPunto(e)
+        ultimaPosicion.current = { x: e.clientX, y: e.clientY }
 
-        if (e.button === 1) {
+        // Pan con botón central (o Alt + Izquierdo)
+        if (e.button === 1 && !e.altKey) {
             arrastrando.current = true
-            ultimaPosicion.current = { x: e.clientX, y: e.clientY }
+            return
+        }
+
+        // Rotar con Alt + Botón Central
+        if (e.button === 1 && e.altKey) {
+            rotando.current = true
+            return
+        }
+
+        // Rotar con Alt + Botón Central
+        if (e.button === 1 && e.altKey) {
+            rotando.current = true
             return
         }
 
@@ -282,11 +325,13 @@ export default function CanvasEditor() {
                 else terminarMuro(propiedades.muro, true)
             }
             if (herramienta === 'door') {
-                terminarPuerta(propiedades.puerta, p)
+                if (!dibujando) iniciarDibujo(p, 'puerta')
+                else terminarPuerta(propiedades.puerta)
                 return
             }
             if (herramienta === 'window') {
-                terminarVentana(propiedades.ventana, p)
+                if (!dibujando) iniciarDibujo(p, 'ventana')
+                else terminarVentana(propiedades.ventana)
                 return
             }
             if (herramienta === 'stair') {
@@ -360,10 +405,17 @@ export default function CanvasEditor() {
             return
         }
 
+        if (rotando.current) {
+            const dx = e.clientX - ultimaPosicion.current.x
+            setRotation(rotation + dx * 0.5)
+            ultimaPosicion.current = { x: e.clientX, y: e.clientY }
+            return
+        }
+
         if (dibujando) {
             actualizarDibujo(p)
         }
-    }, [getPunto, setCursor, arrastrando, moviendo, dibujando, actualizarDibujo, panX, panY, setPan, moverSeleccion])
+    }, [getPunto, setCursor, arrastrando, rotando, moviendo, dibujando, actualizarDibujo, panX, panY, rotation, setPan, setRotation, moverSeleccion, tamano.width])
 
     const cursorStyle = herramienta === 'select' ? 'default' : 'crosshair'
 
@@ -385,7 +437,10 @@ export default function CanvasEditor() {
                 }
             }}
             onMouseUp={(e) => {
-                if (e.button === 1) arrastrando.current = false
+                if (e.button === 1) {
+                    arrastrando.current = false
+                    rotando.current = false
+                }
                 if (e.button === 0) {
                     if (cuadroSeleccion.current && puntoInicio && puntoFin) {
                         // Lógica para seleccionar elementos dentro del cuadro
@@ -455,7 +510,14 @@ export default function CanvasEditor() {
                     )}
                 </Layer>
 
-                <Layer>
+                {/* Capa principal con rotación */}
+                <Layer 
+                    rotation={rotation} 
+                    offsetX={tamano.width / 2} 
+                    offsetY={tamano.height / 2}
+                    x={tamano.width / 2}
+                    y={tamano.height / 2}
+                >
 
                     {/* Capa de uniones — dibuja todos los muros unidos */}
                     <CapaUniones
@@ -689,6 +751,117 @@ export default function CanvasEditor() {
                     )}
                 </Layer>
             </Stage>
+
+            {/* --- SOBRE EL CANVAS (Overlays Visuales) --- */}
+
+            {/* Snap Banner */}
+            <div className="snap-banner">
+                <IconMagnet size={12} />
+                <span>
+                    Snap {Math.round(snapSize * 100)}cm · 
+                    Capa activa: <span className="font-bold">{capaActiva}</span> · 
+                    Ortho {orthoActivo ? 'ON' : 'OFF'}
+                </span>
+            </div>
+
+            {/* ViewCube interactivo */}
+            <div className="viewcube-container">
+                <svg viewBox="0 0 54 54" className="w-full h-full drop-shadow-lg overflow-visible">
+                    {/* Fondo del cubo (Reset) */}
+                    <rect 
+                        x="15" y="15" width="24" height="24" rx="3" 
+                        fill="#1C2030" stroke="#252B3B" strokeWidth="0.5"
+                        className="cursor-pointer hover:fill-[#252B3B] transition-colors"
+                        onClick={() => setRotation(0)}
+                    />
+                    
+                    {/* Polígonos decorativos que rotan con la vista */}
+                    <g style={{ transform: `rotate(${-rotation}deg)`, transformOrigin: '27px 27px', transition: 'transform 0.3s ease' }}>
+                        <polygon points="15,15 27,5 39,15" fill="#252B3B" />
+                        <polygon points="39,15 49,27 39,39" fill="#141720" />
+                        <text x="27" y="31" textAnchor="middle" fontSize="7" fill="#E8ECF0" fontFamily="sans-serif" pointerEvents="none">PLANTA</text>
+                    </g>
+
+                    {/* Botones de Orientación (Estáticos) */}
+                    <text 
+                        x="27" y="9" textAnchor="middle" fontSize="8" 
+                        className="cursor-pointer font-bold hover:fill-[#2D8EFF] fill-[#8892A0] transition-colors"
+                        onClick={() => setRotation(0)}
+                    >N</text>
+                    <text 
+                        x="48" y="30" textAnchor="middle" fontSize="8" 
+                        className="cursor-pointer font-bold hover:fill-[#2D8EFF] fill-[#8892A0] transition-colors"
+                        onClick={() => setRotation(270)}
+                    >E</text>
+                    <text 
+                        x="27" y="50" textAnchor="middle" fontSize="8" 
+                        className="cursor-pointer font-bold hover:fill-[#2D8EFF] fill-[#8892A0] transition-colors"
+                        onClick={() => setRotation(180)}
+                    >S</text>
+                    <text 
+                        x="6" y="30" textAnchor="middle" fontSize="8" 
+                        className="cursor-pointer font-bold hover:fill-[#2D8EFF] fill-[#8892A0] transition-colors"
+                        onClick={() => setRotation(90)}
+                    >O</text>
+                </svg>
+            </div>
+
+            {/* Rosa de los vientos - Siempre apunta al Norte real */}
+            <div className="north-rose" style={{ transform: `rotate(${-rotation}deg)`, transition: 'transform 0.3s ease' }}>
+                <svg width="20" height="24" viewBox="0 0 20 24">
+                    <polygon points="10,2 13,14 10,12 7,14" fill="#2D8EFF"/>
+                    <polygon points="10,22 13,10 10,12 7,10" fill="#252B3B" stroke="#2D8EFF" strokeWidth="0.5"/>
+                    <text x="10" y="20" textAnchor="middle" fontSize="7" fill="#2D8EFF" fontFamily="sans-serif" dy="6">N</text>
+                </svg>
+            </div>
+
+            {/* Barra de Escala */}
+            <div className="scale-indicator">
+                <div className="scale-bar-line"></div>
+                <span className="scale-text">5m · 1:100</span>
+            </div>
+
+            {/* Mini Herramientas Flotantes */}
+            <div className="mini-tools">
+                <button 
+                    className="mini-btn" 
+                    title="Zoom In" 
+                    onClick={() => {
+                        const nz = Math.min(ZOOM_MAX, zoom * 1.2)
+                        setZoom(nz)
+                    }}
+                >
+                    <IconPlus size={16} />
+                </button>
+                <button 
+                    className="mini-btn" 
+                    title="Zoom Out"
+                    onClick={() => {
+                        const nz = Math.max(ZOOM_MIN, zoom / 1.2)
+                        setZoom(nz)
+                    }}
+                >
+                    <IconMinus size={16} />
+                </button>
+                <button 
+                    className="mini-btn" 
+                    title="Fit View"
+                    onClick={() => {
+                        // Lógica básica de fit view (centrar en 0,0 con zoom 1)
+                        setPan(tamano.width / 2, tamano.height / 2)
+                        setZoom(1)
+                    }}
+                >
+                    <IconArrowsMaximize size={16} />
+                </button>
+                <button 
+                    className={`mini-btn ${grillaVisible ? 'text-cyan-400 border-cyan-400/30' : ''}`} 
+                    title="Toggle Grid"
+                    onClick={toggleGrilla}
+                >
+                    <IconGrid4x4 size={16} />
+                </button>
+            </div>
 
             {/* Modal de Configuración */}
             {modalConfigAbierto && <ConfigModal />}

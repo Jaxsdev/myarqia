@@ -33,14 +33,14 @@ export const TEMA_CLARO: Tema = {
     gridSub: '#d4cabb',           // subdivisiones muy suaves
     gridMain: '#b8aa97',          // metro principal, sutil
 
-    muroRelleno: '#1a1a1a',       // negro sólido
+    muroRelleno: 'transparent',   // Transparente para estilo CAD
     muroBorde: '#1a1a1a',
 
-    puerta: '#2d2d2d',
-    puertaSeleccionada: '#1d4ed8',
+    puerta: '#f97316',            // naranja
+    puertaSeleccionada: '#ea580c',
 
-    ventana: '#2d2d2d',
-    ventanaSeleccionada: '#1d4ed8',
+    ventana: '#fbbf24',           // amarillo
+    ventanaSeleccionada: '#f59e0b',
 
     cotaLinea: '#cc0000',
     cotaTexto: '#cc0000',
@@ -52,14 +52,14 @@ export const TEMA_OSCURO: Tema = {
     gridSub: '#1f2937',
     gridMain: '#374151',
 
-    muroRelleno: '#e2e8f0',       // gris claro para contraste
-    muroBorde: '#94a3b8',
+    muroRelleno: 'transparent',   // Transparente para estilo CAD
+    muroBorde: '#f1f5f9',         // Blanco/Gris muy claro para líneas CAD
 
-    puerta: '#fbbf24',            // amarillo
-    puertaSeleccionada: '#f59e0b',
+    puerta: '#f97316',            // naranja
+    puertaSeleccionada: '#ea580c',
 
-    ventana: '#06b6d4',           // cian
-    ventanaSeleccionada: '#22d3ee',
+    ventana: '#fbbf24',           // amarillo
+    ventanaSeleccionada: '#f59e0b',
 
     cotaLinea: '#ef4444',
     cotaTexto: '#ef4444',

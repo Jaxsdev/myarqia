@@ -42,8 +42,8 @@ export default function PreviewGhost({ x, y, ancho, tipo, muros, zoom, panX, pan
 
     const angGrados = anguloMuro * (180 / Math.PI)
     const color = {
-        door: '#fbbf24',
-        window: '#06b6d4',
+        door: '#f97316',   // Naranja CAD
+        window: '#fbbf24', // Amarillo CAD
         column: '#94a3b8'
     }[tipo]
 

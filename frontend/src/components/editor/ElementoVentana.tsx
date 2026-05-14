@@ -31,37 +31,47 @@ export default function ElementoVentana({
     const grosorPx = 0.10 * PX * zoom
     const color = seleccionado ? tema.ventanaSeleccionada : tema.ventana
 
+    const frameSize = 0.05 * PX * zoom // Marco de 5cm
+
     return (
         <Group
             onClick={(e) => onClick(ventana.id, e.evt.shiftKey)}
             rotation={rotGrados}
             x={cx} y={cy}
         >
-            {/* Línea exterior (marco) */}
+            {/* Marcos laterales de la ventana (Jambas CAD) */}
             <Line
-                points={[-anchoPx / 2, -grosorPx, anchoPx / 2, -grosorPx]}
-                stroke={color}
-                strokeWidth={seleccionado ? 2.5 : 2}
-                hitStrokeWidth={10}
-            />
-            {/* Línea del vidrio (centro) */}
-            <Line
-                points={[-anchoPx / 2, 0, anchoPx / 2, 0]}
+                points={[-anchoPx / 2, -grosorPx, -anchoPx / 2, grosorPx, -anchoPx / 2 + frameSize, grosorPx, -anchoPx / 2 + frameSize, -grosorPx]}
+                closed
+                fill={color}
                 stroke={color}
                 strokeWidth={1}
-                opacity={0.5}
             />
-            {/* Línea interior (marco) */}
             <Line
-                points={[-anchoPx / 2, grosorPx, anchoPx / 2, grosorPx]}
+                points={[anchoPx / 2 - frameSize, -grosorPx, anchoPx / 2 - frameSize, grosorPx, anchoPx / 2, grosorPx, anchoPx / 2, -grosorPx]}
+                closed
+                fill={color}
                 stroke={color}
-                strokeWidth={seleccionado ? 2.5 : 2}
+                strokeWidth={1}
             />
-            {/* Tapas laterales */}
-            <Line points={[-anchoPx / 2, -grosorPx, -anchoPx / 2, grosorPx]}
-                stroke={color} strokeWidth={1.5} />
-            <Line points={[anchoPx / 2, -grosorPx, anchoPx / 2, grosorPx]}
-                stroke={color} strokeWidth={1.5} />
+
+            {/* Líneas paralelas del vidrio y marco interior */}
+            <Line
+                points={[-anchoPx / 2 + frameSize, -grosorPx, anchoPx / 2 - frameSize, -grosorPx]}
+                stroke={color}
+                strokeWidth={seleccionado ? 3 : 2}
+            />
+            <Line
+                points={[-anchoPx / 2 + frameSize, 0, anchoPx / 2 - frameSize, 0]}
+                stroke={color}
+                strokeWidth={1}
+                opacity={0.6}
+            />
+            <Line
+                points={[-anchoPx / 2 + frameSize, grosorPx, anchoPx / 2 - frameSize, grosorPx]}
+                stroke={color}
+                strokeWidth={seleccionado ? 3 : 2}
+            />
         </Group>
     )
 }

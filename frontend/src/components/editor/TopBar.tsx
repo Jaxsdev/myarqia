@@ -60,9 +60,9 @@ export default function TopBar() {
     const navigate = useNavigate()
     const { proyectoActual, setProyectoActual } = useProyectoStore()
     const { 
-        muros, puertas, ventanas, limpiarTodo, 
-        eliminarSeleccionado, seleccionarTodo, duplicarSeleccion,
-        undo, redo
+        muros, puertas, ventanas, escaleras, columnas, cotas, textos, areas, ambientes,
+        limpiarTodo, eliminarSeleccionado, seleccionarTodo, duplicarSeleccion,
+        undo, redo, autoSanarPlano
     } = usePlanoStore()
     const { guardando, forzarGuardado } = useGuardadoAutomatico()
     const { exportar } = useExportarPDF()
@@ -343,7 +343,10 @@ export default function TopBar() {
                 <input type="file" ref={imgInputRef} className="hidden" accept="image/*" onChange={(e) => console.log('Importar Imagen:', e.target.files?.[0])} />
 
                 <button
-                    onClick={exportar}
+                    onClick={() => {
+                        autoSanarPlano()
+                        exportar()
+                    }}
                     className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-md border border-[#2D8EFF44] bg-[#2D8EFF18] text-[#2D8EFF] hover:bg-[#2D8EFF30] transition-all cursor-pointer"
                 >
                     <IconFileText size={14} />
@@ -351,7 +354,14 @@ export default function TopBar() {
                 </button>
 
                 <button
-                    onClick={() => descargarDXF(muros, puertas, ventanas, proyectoActual?.nombre || 'proyecto')}
+                    onClick={() => {
+                        autoSanarPlano()
+                        descargarDXF(
+                            muros, puertas, ventanas, escaleras, columnas, 
+                            cotas, textos, areas, ambientes, 
+                            proyectoActual?.nombre || 'proyecto'
+                        )
+                    }}
                     className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-md border border-[#00C8D444] bg-[#00C8D418] text-[#00C8D4] hover:bg-[#00C8D430] transition-all cursor-pointer"
                 >
                     <IconDownload size={14} />

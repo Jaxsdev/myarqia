@@ -40,3 +40,125 @@ body {
   scrollbar-width: thin;
   scrollbar-color: var(--bg3) transparent;
 }
+
+/* Viewport Overlays */
+.snap-banner {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(45, 142, 255, 0.1);
+  border: 1px solid rgba(45, 142, 255, 0.2);
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 10px;
+  color: var(--acc);
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.viewcube-container {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 64px;
+  height: 64px;
+  z-index: 20;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.viewcube-container:hover {
+  transform: scale(1.05);
+}
+
+.north-rose {
+  position: absolute;
+  top: 88px;
+  right: 32px;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.scale-indicator {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.scale-bar-line {
+  width: 80px;
+  height: 2px;
+  background: var(--acc);
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.scale-bar-line::before,
+.scale-bar-line::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 10px;
+  background: var(--acc);
+}
+
+.scale-bar-line::after {
+  right: 0;
+}
+
+.scale-text {
+  font-size: 9px;
+  color: var(--mut);
+  font-family: 'JetBrains Mono', monospace;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+.mini-tools {
+  position: absolute;
+  bottom: 24px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 20;
+}
+
+.mini-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(28, 32, 48, 0.8);
+  border: 1px solid var(--bdr);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--mut);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(4px);
+}
+
+.mini-btn:hover {
+  background: var(--bg3);
+  color: var(--txt);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-color: var(--acc);
+}
+
+.mini-btn:active {
+  transform: translateY(0);
+}

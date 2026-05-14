@@ -118,12 +118,9 @@ export default function CapaUniones({ muros, puertas, ventanas, zoom, panX, panY
                 raw.lineCap = 'square'
                 raw.lineJoin = 'miter'
 
-                // 1 — Rellenos
+                // 1 — Rellenos (Opcional según el tema)
                 polys.forEach((poly, i) => {
-                    if (!poly) return
-                    
-                    // Si el muro tiene una puerta, no rellenamos el hueco (simplificado para MVP)
-                    // En una versión más avanzada segmentaríamos el relleno también
+                    if (!poly || tema.muroRelleno === 'transparent') return
                     
                     raw.beginPath()
                     raw.moveTo(poly.p1.x, poly.p1.y)
@@ -133,33 +130,9 @@ export default function CapaUniones({ muros, puertas, ventanas, zoom, panX, panY
                     raw.closePath()
                     raw.fillStyle = tema.muroRelleno
                     raw.fill()
-                    
-                    // Si hay puertas/ventanas, "limpiamos" el hueco
-                    const aberturasMuro = [
-                        ...puertas.filter(p => p.muro_id === muros[i].id).map(p => ({ x: p.x, y: p.y, ancho: p.ancho })),
-                        ...ventanas.filter(v => v.muro_id === muros[i].id).map(v => ({ x: v.x, y: v.y, ancho: v.ancho }))
-                    ]
-
-                    aberturasMuro.forEach(ab => {
-                        const m = muros[i]
-                        const ang = Math.atan2(m.y2 - m.y1, m.x2 - m.x1)
-                        const ax = ws(ab.x, panX, zoom)
-                        const ay = ws(ab.y, panY, zoom)
-                        const wPx = ab.ancho * PX * zoom
-                        const hPx = (m.espesor + 0.1) * PX * zoom // Un poco más ancho que el muro para asegurar el corte
-                        
-                        raw.save()
-                        raw.globalCompositeOperation = 'destination-out'
-                        raw.translate(ax, ay)
-                        raw.rotate(ang)
-                        raw.beginPath()
-                        raw.rect(-wPx / 2, -hPx / 2, wPx, hPx)
-                        raw.fill()
-                        raw.restore()
-                    })
                 })
 
-                // 2 — Contornos encima de todo
+                // 2 — Contornos
                 polys.forEach((poly, i) => {
                     if (!poly) return
                     const c = caras[i]!
@@ -200,8 +173,52 @@ export default function CapaUniones({ muros, puertas, ventanas, zoom, panX, panY
                     }
 
                     raw.strokeStyle = tema.muroBorde
-                    raw.lineWidth = 1 // Un poco más grueso para que se vea bien
+                    raw.lineWidth = 1 
                     raw.stroke()
+                })
+
+                // 3 — Huecos para puertas y ventanas (Corta tanto rellenos como contornos)
+                muros.forEach((m, i) => {
+                    const aberturasMuro = [
+                        ...puertas.filter(p => p.muro_id === m.id).map(p => ({ x: p.x, y: p.y, ancho: p.ancho })),
+                        ...ventanas.filter(v => v.muro_id === m.id).map(v => ({ x: v.x, y: v.y, ancho: v.ancho }))
+                    ]
+
+                    if (aberturasMuro.length === 0) return
+
+                    aberturasMuro.forEach(ab => {
+                        const ang = Math.atan2(m.y2 - m.y1, m.x2 - m.x1)
+                        const ax = ws(ab.x, panX, zoom)
+                        const ay = ws(ab.y, panY, zoom)
+                        const wPx = ab.ancho * PX * zoom
+                        const wallThicknessPx = m.espesor * PX * zoom
+                        const hPx = wallThicknessPx + 2 // Solo lo mínimo necesario para limpiar los bordes
+                        
+                        raw.save()
+                        raw.translate(ax, ay)
+                        raw.rotate(ang)
+                        
+                        // 1. Cortar el hueco (Simétrico)
+                        raw.globalCompositeOperation = 'destination-out'
+                        raw.beginPath()
+                        raw.rect(-wPx / 2, -hPx / 2, wPx, hPx)
+                        raw.fill()
+
+                        // 2. Dibujar las "tapas" (Jambas) - Ajustadas al espesor real del muro
+                        raw.globalCompositeOperation = 'source-over'
+                        raw.strokeStyle = modoClaro ? '#000000' : '#E8ECF0'
+                        raw.lineWidth = 1 * zoom
+                        raw.beginPath()
+                        // Tapa izquierda
+                        raw.moveTo(-wPx / 2, -wallThicknessPx / 2)
+                        raw.lineTo(-wPx / 2, wallThicknessPx / 2)
+                        // Tapa derecha
+                        raw.moveTo(wPx / 2, -wallThicknessPx / 2)
+                        raw.lineTo(wPx / 2, wallThicknessPx / 2)
+                        raw.stroke()
+                        
+                        raw.restore()
+                    })
                 })
 
                 raw.restore()

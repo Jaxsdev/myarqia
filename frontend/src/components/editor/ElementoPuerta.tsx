@@ -1,4 +1,4 @@
-import { Group, Line, Arc } from 'react-konva'
+import { Group, Line, Arc, Rect } from 'react-konva'
 import type { Puerta } from '../../types'
 import { TEMA_CLARO, TEMA_OSCURO } from '../../lib/temas'
 import { usePlanoStore } from '../../store/usePlanoStore'
@@ -22,7 +22,7 @@ function ws(m: number, pan: number, zoom: number) {
 export default function ElementoPuerta({
     puerta, zoom, panX, panY, seleccionado, onClick, modoClaro
 }: Props) {
-    const { togglePuertaSentido } = usePlanoStore()
+    const { togglePuertaSentido, muros } = usePlanoStore()
     const tema = modoClaro ? TEMA_CLARO : TEMA_OSCURO
     const cx = ws(puerta.x, panX, zoom)
     const cy = ws(puerta.y, panY, zoom)
@@ -30,7 +30,13 @@ export default function ElementoPuerta({
     const rotGrados = puerta.rotacion * (180 / Math.PI)
     const openingAngle = puerta.angulo // opening angle from store (45, 90, 135)
 
+    const muroAsociado = muros.find(m => m.id === puerta.muro_id)
+    const espesorMuro = muroAsociado ? muroAsociado.espesor : 0.15
+
     const color = seleccionado ? tema.puertaSeleccionada : tema.puerta
+    const frameWidth = 0.05 * PX * zoom // Ancho del marco (5cm)
+    const frameDepth = espesorMuro * PX * zoom // Profundidad igual al muro
+    const leafThickness = 0.03 * PX * zoom // Hoja de 3cm
 
     const handleClick = (e: any) => {
         if (seleccionado) {
@@ -41,41 +47,68 @@ export default function ElementoPuerta({
         }
     }
 
+    // La puerta se dibuja centrada en (cx, cy)
+    // El vano mide 'anchoPx' en total.
+    // La hoja debe medir el ancho del vano menos el espacio de los marcos.
+    const effectiveWidth = anchoPx - frameWidth * 2
+
     return (
         <Group
             onClick={handleClick}
             rotation={rotGrados}
             x={cx} y={cy}
         >
-            {/* Marco de la puerta (opcional, para realismo) */}
-            <Line
-                points={[0, -2, 0, 2]}
-                stroke={color}
-                strokeWidth={2}
+            {/* Marcos de la puerta (Jambas CAD detalladas) */}
+            {/* Marco Izquierdo */}
+            <Rect 
+                x={-anchoPx / 2} 
+                y={-frameDepth / 2} 
+                width={frameWidth} 
+                height={frameDepth} 
+                stroke={color} 
+                strokeWidth={1} 
+                fill={tema.fondoCanvas} 
+            />
+            {/* Marco Derecho */}
+            <Rect 
+                x={anchoPx / 2 - frameWidth} 
+                y={-frameDepth / 2} 
+                width={frameWidth} 
+                height={frameDepth} 
+                stroke={color} 
+                strokeWidth={1} 
+                fill={tema.fondoCanvas} 
             />
 
-            {/* Hoja de la puerta */}
-            <Line
-                points={[0, 0, 0, puerta.sentido === 'izquierda' ? anchoPx : -anchoPx]}
-                rotation={puerta.sentido === 'izquierda' ? -openingAngle : openingAngle}
-                stroke={color}
-                strokeWidth={seleccionado ? 2.5 : 2}
-                hitStrokeWidth={10}
-            />
+            {/* Punto de Pivote (Hinge) - Situado en el borde interior del marco izquierdo */}
+            <Group x={-anchoPx / 2 + frameWidth} y={0}>
+                {/* Hoja de la puerta - Ahora nace paralela al muro y rota hacia afuera */}
+                <Group rotation={puerta.sentido === 'izquierda' ? -openingAngle : openingAngle}>
+                    <Rect 
+                        x={0} 
+                        y={-leafThickness / 2} 
+                        width={effectiveWidth} 
+                        height={leafThickness} 
+                        fill={color}
+                        stroke={color}
+                        strokeWidth={1}
+                    />
+                </Group>
 
-            {/* Arco de apertura */}
-            <Arc
-                x={0} y={0}
-                innerRadius={anchoPx}
-                outerRadius={anchoPx}
-                angle={openingAngle}
-                rotation={puerta.sentido === 'izquierda' ? -90 - openingAngle : -90}
-                fill="transparent"
-                stroke={color}
-                strokeWidth={1}
-                dash={[4, 4]}
-                opacity={0.8}
-            />
+                {/* Arco de apertura */}
+                <Arc
+                    x={0} y={0}
+                    innerRadius={effectiveWidth}
+                    outerRadius={effectiveWidth}
+                    angle={openingAngle}
+                    rotation={puerta.sentido === 'izquierda' ? -openingAngle : 0}
+                    fill="transparent"
+                    stroke={color}
+                    strokeWidth={1}
+                    dash={[4, 4]}
+                    opacity={0.6}
+                />
+            </Group>
         </Group>
     )
 }

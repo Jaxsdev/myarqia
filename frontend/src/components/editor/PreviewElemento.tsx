@@ -1,4 +1,4 @@
-import { Line } from 'react-konva'
+import { Line, Group, Arc, Rect } from 'react-konva'
 import type { Punto } from '../../types'
 
 interface Props {
@@ -19,12 +19,45 @@ export default function PreviewElemento({
     inicio, fin, aux, tipo, zoom, panX, panY, paso = 1
 }: Props) {
     const color = {
-        puerta: '#fbbf24',
-        ventana: '#06b6d4',
+        puerta: '#f97316',
+        ventana: '#fbbf24',
         escalera: '#a855f7',
         columna: '#94a3b8',
         cota: '#3b82f6'
     }[tipo]
+
+    // Visualización específica para puertas y ventanas durante el dibujo
+    if (tipo === 'puerta' || tipo === 'ventana') {
+        const dx = fin.x - inicio.x
+        const dy = fin.y - inicio.y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        const ang = Math.atan2(dy, dx)
+        const mx = ws((inicio.x + fin.x) / 2, panX, zoom)
+        const my = ws((inicio.y + fin.y) / 2, panY, zoom)
+        const distPx = dist * PX * zoom
+
+        return (
+            <Group x={mx} y={my} rotation={ang * (180 / Math.PI)}>
+                {tipo === 'puerta' ? (
+                    <>
+                        <Line points={[-distPx / 2, 0, -distPx / 2, -distPx]} stroke={color} strokeWidth={2} dash={[4, 2]} />
+                        <Arc
+                            x={-distPx / 2} y={0}
+                            innerRadius={distPx} outerRadius={distPx}
+                            angle={90} rotation={-90}
+                            stroke={color} strokeWidth={1} dash={[4, 4]}
+                        />
+                        <Line points={[-distPx / 2, 0, distPx / 2, 0]} stroke={color} strokeWidth={3} />
+                    </>
+                ) : (
+                    <>
+                        <Rect x={-distPx / 2} y={-5 * zoom} width={distPx} height={10 * zoom} stroke={color} strokeWidth={2} dash={[4, 2]} />
+                        <Line points={[-distPx / 2, 0, distPx / 2, 0]} stroke={color} strokeWidth={1} />
+                    </>
+                )}
+            </Group>
+        )
+    }
 
     // Si es una cota en el paso 2, dibujamos la línea con offset
     if (tipo === 'cota' && paso === 2 && aux) {
