@@ -17,6 +17,8 @@ export interface SnapContexto {
     snapActivo: boolean
     orthoActivo: boolean
     puntoInicio: Punto | null      // si está dibujando, el primer punto
+    shiftActivo?: boolean          // Shift presionado: libera el ortho automático
+    dibujando?: boolean            // hay un dibujo en progreso (puntoInicio fijado)
 }
 
 export interface SnapResultado {
@@ -169,15 +171,27 @@ export function calcularSnap(
     return aplicarOrtho({ x: mx, y: my }, mejorInfo, ctx)
 }
 
-// Aplica restricción ortogonal (snap a 0/45/90/...) si está activa y hay puntoInicio.
+// Aplica restricción ortogonal si corresponde.
+//
+// Reglas:
+// • Si Shift está presionado → SIEMPRE se libera el ortho (modo libre temporal).
+// • Si la herramienta es "wall" y hay un dibujo en progreso → ortho automático
+//   forzando solo 0° / 90° (muros estrictamente horizontales o verticales).
+// • Si orthoActivo (F8 manual) → ortho a múltiplos de 45° (cualquier herramienta).
+// • Sino → sin restricción.
 function aplicarOrtho(
     p: Punto,
     info: SnapInfo | null,
     ctx: SnapContexto,
 ): SnapResultado {
-    if (!ctx.orthoActivo || !ctx.puntoInicio) {
-        return { punto: p, info }
-    }
+    if (!ctx.puntoInicio) return { punto: p, info }
+    if (ctx.shiftActivo) return { punto: p, info }
+
+    const muroAuto = ctx.herramienta === 'wall' && ctx.dibujando === true
+    if (!ctx.orthoActivo && !muroAuto) return { punto: p, info }
+
+    // Granularidad de ángulos
+    const step = muroAuto ? 90 : 45
 
     const dx = p.x - ctx.puntoInicio.x
     const dy = p.y - ctx.puntoInicio.y
@@ -185,7 +199,7 @@ function aplicarOrtho(
     if (d === 0) return { punto: p, info }
 
     const angle = Math.atan2(dy, dx) * 180 / Math.PI
-    const snapped = Math.round(angle / 45) * 45
+    const snapped = Math.round(angle / step) * step
     const rad = snapped * Math.PI / 180
 
     let mx = ctx.puntoInicio.x + Math.cos(rad) * d
@@ -196,5 +210,10 @@ function aplicarOrtho(
         my = Math.round(my / ctx.snapSize) * ctx.snapSize
     }
 
-    return { punto: { x: mx, y: my }, info: info ?? { x: mx, y: my, tipo: 'ortho', label: `${snapped}°` } }
+    // Mostrar etiqueta del ortho a menos que ya tengamos info de snap a entidad
+    const orthoLabel = muroAuto ? `ORTHO ${((snapped % 360 + 360) % 360)}°` : `${snapped}°`
+    return {
+        punto: { x: mx, y: my },
+        info: info ?? { x: mx, y: my, tipo: 'ortho', label: orthoLabel },
+    }
 }

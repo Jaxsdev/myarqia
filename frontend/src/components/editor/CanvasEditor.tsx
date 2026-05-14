@@ -40,6 +40,9 @@ export default function CanvasEditor() {
     const cuadroSeleccion = useRef(false)
     const ultimaPosicion = useRef({ x: 0, y: 0 })
     const posInicioMover = useRef<Punto | null>(null)
+    // Última posición del cursor en coordenadas de pantalla. Se usa para resnap
+    // al pulsar/soltar Shift sin mover el mouse.
+    const lastScreenPos = useRef<{ x: number; y: number } | null>(null)
 
     // --- Store: editor ---
     const {
@@ -152,6 +155,37 @@ export default function CanvasEditor() {
         return () => window.removeEventListener('keydown', handler)
     }, [cancelarDibujo, setHerramienta, toggleOrtho, toggleSnap, eliminarSeleccionado, undo, redo])
 
+    // --- Shift: re-snap inmediato al pulsar/soltar sin mover el mouse ---
+    // Mientras se está dibujando un muro, pulsar Shift debe liberar el ortho
+    // automático en tiempo real, aunque el cursor esté quieto.
+    useEffect(() => {
+        const onShift = (e: KeyboardEvent) => {
+            if (e.key !== 'Shift') return
+            if (!dibujando || !lastScreenPos.current || !contenedorRef.current) return
+
+            const rect = contenedorRef.current.getBoundingClientRect()
+            const raw = {
+                x: screenToWorld(lastScreenPos.current.x - rect.left, panX, zoom),
+                y: screenToWorld(lastScreenPos.current.y - rect.top, panY, zoom),
+            }
+            const res = calcularSnap(raw, {
+                muros, columnas, escaleras,
+                herramienta, zoom, snapSize, snapActivo, orthoActivo,
+                puntoInicio,
+                shiftActivo: e.type === 'keydown',
+                dibujando,
+            })
+            setSnapInfo(res.info)
+            actualizarDibujo(res.punto)
+        }
+        window.addEventListener('keydown', onShift)
+        window.addEventListener('keyup', onShift)
+        return () => {
+            window.removeEventListener('keydown', onShift)
+            window.removeEventListener('keyup', onShift)
+        }
+    }, [dibujando, panX, panY, zoom, muros, columnas, escaleras, herramienta, snapSize, snapActivo, orthoActivo, puntoInicio, setSnapInfo, actualizarDibujo])
+
     const getPunto = useCallback((e: MouseEvent<HTMLDivElement>): Punto => {
         const rect = contenedorRef.current!.getBoundingClientRect()
         const raw = {
@@ -163,6 +197,8 @@ export default function CanvasEditor() {
             muros, columnas, escaleras,
             herramienta, zoom, snapSize, snapActivo, orthoActivo,
             puntoInicio,
+            shiftActivo: e.shiftKey,
+            dibujando,
         })
 
         // Sincronizar feedback visual del snap. Se actualiza desde un evento
@@ -170,7 +206,7 @@ export default function CanvasEditor() {
         setSnapInfo(res.info)
 
         return res.punto
-    }, [panX, panY, zoom, snapActivo, snapSize, orthoActivo, puntoInicio, muros, columnas, escaleras, herramienta, setSnapInfo])
+    }, [panX, panY, zoom, snapActivo, snapSize, orthoActivo, puntoInicio, muros, columnas, escaleras, herramienta, dibujando, setSnapInfo])
 
     // --- Wheel: zoom centrado en el cursor ---
     const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
@@ -271,6 +307,7 @@ export default function CanvasEditor() {
 
     // --- MouseMove: actualiza cursor y preview ---
     const handleMouseMove = useCallback((e: MouseEvent<HTMLDivElement>) => {
+        lastScreenPos.current = { x: e.clientX, y: e.clientY }
         const p = getPunto(e)
         setCursor(p.x, p.y)
 
