@@ -1,4 +1,4 @@
-import { Group, Line, Arc, Rect } from 'react-konva'
+import { Group, Arc, Rect } from 'react-konva'
 import type { Puerta } from '../../types'
 import { TEMA_CLARO, TEMA_OSCURO } from '../../lib/temas'
 import { usePlanoStore } from '../../store/usePlanoStore'

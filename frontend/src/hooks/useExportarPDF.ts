@@ -3,10 +3,7 @@ import { usePlanoStore } from '../store/usePlanoStore'
 
 export function useExportarPDF() {
     const { proyectoActual } = useProyectoStore()
-    const { 
-        muros, puertas, ventanas, escaleras, 
-        columnas, cotas, textos, areas, ambientes 
-    } = usePlanoStore()
+    const { areas } = usePlanoStore()
 
     const exportar = async () => {
         const { jsPDF } = await import('jspdf')

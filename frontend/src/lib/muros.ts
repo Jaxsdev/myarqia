@@ -1,4 +1,4 @@
-import type { Muro, Punto } from '../types'
+import type { Muro } from '../types'
 
 interface Vec2 { x: number; y: number }
 

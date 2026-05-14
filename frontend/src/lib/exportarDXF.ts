@@ -11,9 +11,9 @@ export function generarDXF(
     columnas: Columna[] = [],
     cotas: Cota[] = [],
     textos: ElementoTexto[] = [],
-    areas: ElementoArea[] = [],
+    _areas: ElementoArea[] = [],
     ambientes: Ambiente[] = [],
-    nombreProyecto: string = 'Proyecto'
+    _nombreProyecto: string = 'Proyecto'
 ): string {
     const L: string[] = []
     const push = (...args: (string | number)[]) => args.forEach(a => L.push(String(a)))
@@ -261,7 +261,6 @@ export function generarDXF(
     escaleras.forEach((esc) => {
         const dx = esc.x2 - esc.x1
         const dy = esc.y2 - esc.y1
-        const dist = Math.sqrt(dx * dx + dy * dy)
         const ang = Math.atan2(dy, dx)
         const cos = Math.cos(ang); const sin = Math.sin(ang)
         const nx = -sin * (esc.ancho / 2); const ny = cos * (esc.ancho / 2)
