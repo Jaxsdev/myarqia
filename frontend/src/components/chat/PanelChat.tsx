@@ -128,6 +128,10 @@ function procesarRespuestaIA(texto: string) {
                 usePlanoStore.getState().setAmbientes(plano.ambientes)
             }
 
+            // Recalcular ambientes detectados a partir del grafo de muros
+            // recién insertado (los muros se setearon vía setState directo).
+            usePlanoStore.getState().recalcularAmbientes()
+
             // ── Centrar viewport ──────────────────────────────────────
             const todosX = murosProcesados.flatMap((m: any) => [m.x1, m.x2])
             const todosY = murosProcesados.flatMap((m: any) => [m.y1, m.y2])

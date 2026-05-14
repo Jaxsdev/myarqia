@@ -22,6 +22,7 @@ import CapaEtiquetas from './CapaEtiquetas'
 import ConfigModal from './ConfigModal'
 import SnapIndicator from './SnapIndicator'
 import { calcularSnap } from '../../lib/snap'
+import CapaAmbientesDetectados from './CapaAmbientesDetectados'
 
 const PX_POR_METRO = 100
 const ws = (m: number, pan: number, zoom: number) => m * PX_POR_METRO * zoom + pan
@@ -60,6 +61,7 @@ export default function CanvasEditor() {
     // --- Store: plano ---
     const {
         muros, puertas, ventanas, escaleras, columnas, cotas, textos, areas, ambientes,
+        ambientesDetectados,
         dibujando, tipoDibujo, puntoInicio, puntoFin, puntoAux, puntosPoligono,
         idsSeleccionados, iniciarDibujo, actualizarDibujo,
         terminarMuro, terminarPuerta, terminarVentana,
@@ -471,6 +473,13 @@ export default function CanvasEditor() {
                         zoom={zoom} panX={panX} panY={panY}
                         visible={cotasVisibles}
                         modoClaro={modoClaro}
+                    />
+
+                    {/* Ambientes detectados automáticamente del grafo de muros */}
+                    <CapaAmbientesDetectados
+                        ambientes={ambientesDetectados}
+                        zoom={zoom} panX={panX} panY={panY}
+                        visible={nomenclaturaVisible}
                     />
 
                     <CapaEtiquetas
