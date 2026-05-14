@@ -70,7 +70,10 @@ function procesarRespuestaIA(texto: string) {
             })
 
             // Index processed muros by real id for fast lookup
-            const murosPorRealId = new Map(murosProcesados.map((m: any) => [m.id, m]))
+            type MuroLite = { x1: number; y1: number; x2: number; y2: number }
+            const murosPorRealId = new Map<string, MuroLite>(
+                murosProcesados.map((m: any) => [m.id as string, m as MuroLite])
+            )
 
             // ── Insert MUROS ─────────────────────────────────────────
             usePlanoStore.setState(() => ({
