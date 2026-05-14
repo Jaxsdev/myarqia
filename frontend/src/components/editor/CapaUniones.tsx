@@ -50,6 +50,56 @@ function puntoEnSegmentoInterior(p: Vec2, a: Vec2, b: Vec2, tol: number): boolea
 // como 0.10m * PX * zoom para mantenerse constante en el espacio del mundo
 function umbralPx(zoom: number) { return 0.10 * PX * zoom }
 
+// Proyecta el punto p sobre el segmento a-b y devuelve el parámetro t (sin clamp).
+function proyectarT(p: Vec2, a: Vec2, b: Vec2): number {
+    const dx = b.x - a.x, dy = b.y - a.y
+    const l2 = dx * dx + dy * dy
+    if (l2 < 1e-6) return 0
+    return ((p.x - a.x) * dx + (p.y - a.y) * dy) / l2
+}
+
+// Dibuja el segmento a-b en el contexto, omitiendo los rangos [t1,t2] indicados
+// en `gaps`. Se usa para "abrir" la cara de un muro donde llega otro en T.
+function trazarCaraConGaps(
+    raw: CanvasRenderingContext2D,
+    a: Vec2, b: Vec2,
+    gaps: [number, number][],
+) {
+    const pt = (t: number) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t })
+    if (gaps.length === 0) {
+        raw.moveTo(a.x, a.y)
+        raw.lineTo(b.x, b.y)
+        return
+    }
+    // Fusionar gaps solapados
+    const ord = [...gaps].map((g) => [Math.max(0, g[0]), Math.min(1, g[1])] as [number, number])
+        .filter((g) => g[1] > g[0])
+        .sort((x, y) => x[0] - y[0])
+    const fusion: [number, number][] = []
+    for (const g of ord) {
+        const ultimo = fusion[fusion.length - 1]
+        if (ultimo && g[0] <= ultimo[1]) {
+            ultimo[1] = Math.max(ultimo[1], g[1])
+        } else {
+            fusion.push([...g])
+        }
+    }
+    let cursor = 0
+    for (const [t1, t2] of fusion) {
+        if (t1 > cursor) {
+            const s = pt(cursor), e = pt(t1)
+            raw.moveTo(s.x, s.y)
+            raw.lineTo(e.x, e.y)
+        }
+        cursor = Math.max(cursor, t2)
+    }
+    if (cursor < 1) {
+        const s = pt(cursor)
+        raw.moveTo(s.x, s.y)
+        raw.lineTo(b.x, b.y)
+    }
+}
+
 export default function CapaUniones({ muros, puertas, ventanas, zoom, panX, panY, modoClaro }: Props) {
     if (muros.length === 0) return null
     const tema = modoClaro ? TEMA_CLARO : TEMA_OSCURO
@@ -192,8 +242,17 @@ export default function CapaUniones({ muros, puertas, ventanas, zoom, panX, panY
                     const ini = { x: c.sx1, y: c.sy1 }
                     const fin = { x: c.sx2, y: c.sy2 }
 
+                    // Dirección del eje de i (línea original dibujada)
+                    const iDx = fin.x - ini.x
+                    const iDy = fin.y - ini.y
+
                     let iniConectado = false
                     let finConectado = false
+
+                    // Aberturas en cada cara larga producidas por muros que llegan
+                    // en T contra el interior de i. Rangos [t1,t2] en parámetro 0..1.
+                    const gapsPos: [number, number][] = []
+                    const gapsNeg: [number, number][] = []
 
                     muros.forEach((_, j) => {
                         if (i === j) return
@@ -201,7 +260,8 @@ export default function CapaUniones({ muros, puertas, ventanas, zoom, panX, panY
                         if (!co) return
                         const oIni = { x: co.sx1, y: co.sy1 }
                         const oFin = { x: co.sx2, y: co.sy2 }
-                        // Conexión en esquina (L) o T-junction (extremo sobre interior)
+
+                        // Conexión en esquina (L) o T-junction (extremo de i sobre interior de j)
                         if (
                             dist(ini, oIni) < UMBRAL || dist(ini, oFin) < UMBRAL ||
                             puntoEnSegmentoInterior(ini, oIni, oFin, UMBRAL)
@@ -210,30 +270,61 @@ export default function CapaUniones({ muros, puertas, ventanas, zoom, panX, panY
                             dist(fin, oIni) < UMBRAL || dist(fin, oFin) < UMBRAL ||
                             puntoEnSegmentoInterior(fin, oIni, oFin, UMBRAL)
                         ) finConectado = true
+
+                        // T-junction inversa: ¿el extremo de j cae sobre el INTERIOR de i?
+                        // Si sí, j llega en T contra i y debemos abrir un gap en la cara
+                        // de i por la que j se aproxima.
+                        let bLejano: Vec2 | null = null
+                        if (puntoEnSegmentoInterior(oIni, ini, fin, UMBRAL)) {
+                            bLejano = oFin
+                        } else if (puntoEnSegmentoInterior(oFin, ini, fin, UMBRAL)) {
+                            bLejano = oIni
+                        }
+                        if (bLejano) {
+                            // Lado de i por el que llega j: signo del producto cruz
+                            // entre el eje de i y el vector hacia el extremo lejano de j.
+                            const cross = iDx * (bLejano.y - ini.y) - iDy * (bLejano.x - ini.x)
+                            const caraA = cross > 0 ? poly.p1 : poly.p4
+                            const caraB = cross > 0 ? poly.p2 : poly.p3
+                            // Proyectar las 4 esquinas de j sobre esa cara de i
+                            let tMin = Infinity, tMax = -Infinity
+                            for (const e of [co.p1, co.p2, co.p3, co.p4]) {
+                                const t = proyectarT(e, caraA, caraB)
+                                if (t < tMin) tMin = t
+                                if (t > tMax) tMax = t
+                            }
+                            const gap: [number, number] = [
+                                Math.max(0, tMin),
+                                Math.min(1, tMax),
+                            ]
+                            if (gap[1] > gap[0]) {
+                                (cross > 0 ? gapsPos : gapsNeg).push(gap)
+                            }
+                        }
                     })
 
                     raw.beginPath()
-                    // Lado exterior/interior 1 (p1 -> p2)
-                    raw.moveTo(poly.p1.x, poly.p1.y)
-                    raw.lineTo(poly.p2.x, poly.p2.y)
+
+                    // Cara lado + (p1 -> p2) con aberturas T
+                    trazarCaraConGaps(raw, poly.p1, poly.p2, gapsPos)
 
                     // Tapa de FIN (p2 -> p3)
                     if (!finConectado) {
+                        raw.moveTo(poly.p2.x, poly.p2.y)
                         raw.lineTo(poly.p3.x, poly.p3.y)
-                    } else {
-                        raw.moveTo(poly.p3.x, poly.p3.y)
                     }
 
-                    // Lado exterior/interior 2 (p3 -> p4)
-                    raw.lineTo(poly.p4.x, poly.p4.y)
+                    // Cara lado - (p4 -> p3) con aberturas T
+                    trazarCaraConGaps(raw, poly.p4, poly.p3, gapsNeg)
 
                     // Tapa de INICIO (p4 -> p1)
                     if (!iniConectado) {
+                        raw.moveTo(poly.p4.x, poly.p4.y)
                         raw.lineTo(poly.p1.x, poly.p1.y)
                     }
 
                     raw.strokeStyle = tema.muroBorde
-                    raw.lineWidth = 1 // Un poco más grueso para que se vea bien
+                    raw.lineWidth = 1
                     raw.stroke()
                 })
 
