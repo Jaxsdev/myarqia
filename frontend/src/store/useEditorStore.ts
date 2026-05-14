@@ -3,6 +3,15 @@ import { create } from 'zustand'
 export type Herramienta = 'select' | 'wall' | 'door' | 'window' | 'stair' | 'column' | 'dim' | 'text' | 'area' | 'snap' | 'config'
 export type Vista = '2d' | '3d' | 'planos'
 
+// Indicador de snap activo — se muestra como marcador en pantalla
+export type SnapTipo = 'endpoint' | 'midpoint' | 'edge' | 'intersection' | 'ortho' | 'grid'
+export interface SnapInfo {
+    x: number        // coordenadas mundo (metros)
+    y: number
+    tipo: SnapTipo
+    label?: string   // texto opcional ("EXT", "MED", etc.)
+}
+
 interface ToolProperties {
     muro: {
         espesor: number
@@ -72,6 +81,10 @@ interface EditorState {
     cursorY: number
     setCursor: (x: number, y: number) => void
 
+    // Info del snap actualmente activo (para feedback visual)
+    snapInfo: SnapInfo | null
+    setSnapInfo: (info: SnapInfo | null) => void
+
     // Snap y Ortho
     snapActivo: boolean
     snapSize: number  // en metros
@@ -126,6 +139,9 @@ export const useEditorStore = create<EditorState>((set) => ({
     cursorX: 0,
     cursorY: 0,
     setCursor: (cursorX, cursorY) => set({ cursorX, cursorY }),
+
+    snapInfo: null,
+    setSnapInfo: (snapInfo) => set({ snapInfo }),
 
     snapActivo: true,
     snapSize: 0.25,

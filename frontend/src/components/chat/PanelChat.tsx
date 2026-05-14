@@ -16,13 +16,11 @@ const MODELOS = [
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
 
 
-// Sanitiza un valor numérico de la IA, devolviendo el fallback si es NaN/Infinity
 function safeNum(v: unknown, fallback: number): number {
     const n = Number(v)
     return Number.isFinite(n) ? n : fallback
 }
 
-// Convierte la respuesta JSON de la IA en muros para el canvas
 function procesarRespuestaIA(texto: string) {
     try {
         // Paso 1: limpiar backticks y markdown
@@ -149,6 +147,9 @@ function procesarRespuestaIA(texto: string) {
                 usePlanoStore.getState().setAmbientes(plano.ambientes)
             }
 
+            // Recalcular ambientes detectados a partir del grafo de muros
+            usePlanoStore.getState().recalcularAmbientes()
+
             // Centrar la vista
             const todosX = plano.muros?.flatMap((m: any) => [m.x1, m.x2]) || []
             const todosY = plano.muros?.flatMap((m: any) => [m.y1, m.y2]) || []
@@ -157,23 +158,22 @@ function procesarRespuestaIA(texto: string) {
                 const maxX = Math.max(...todosX)
                 const minY = Math.min(...todosY)
                 const maxY = Math.max(...todosY)
-
+                const centroX = (minX + maxX) / 2
+                const centroY = (minY + maxY) / 2
                 setTimeout(() => {
                     const PX = 100
                     const viewW = window.innerWidth * 0.55
                     const viewH = window.innerHeight * 0.75
-                    const anchoPlano = (maxX - minX) * PX
-                    const altoPlano = (maxY - minY) * PX
                     const zoomFit = Math.min(
-                        viewW / (anchoPlano + 100),
-                        viewH / (altoPlano + 100),
+                        viewW / ((maxX - minX) * PX + 120),
+                        viewH / ((maxY - minY) * PX + 120),
                         2.0
                     )
-                    const panX = viewW / 2 - ((minX + maxX) / 2) * PX * zoomFit
-                    const panY = viewH / 2 - ((minY + maxY) / 2) * PX * zoomFit
-
                     useEditorStore.getState().setZoom(zoomFit)
-                    useEditorStore.getState().setPan(panX, panY)
+                    useEditorStore.getState().setPan(
+                        viewW / 2 - centroX * PX * zoomFit,
+                        viewH / 2 - centroY * PX * zoomFit,
+                    )
                 }, 100)
             }
 

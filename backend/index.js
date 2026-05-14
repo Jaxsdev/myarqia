@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors')
-require('dotenv').config()
+// override: true para que .env gane sobre variables de entorno vacías heredadas del shell
+require('dotenv').config({ override: true })
 
 const app = express()
 app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176'] }))

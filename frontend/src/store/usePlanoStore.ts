@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { Muro, Puerta, Ventana, Escalera, Columna, Cota, ElementoTexto, ElementoArea, Punto, Ambiente } from '../types'
+import { detectarAmbientes, type AmbienteDetectado } from '../lib/ambientes'
 
 const uid = (p: string) => `${p}-${crypto.randomUUID().slice(0, 8)}`
 
@@ -27,6 +28,11 @@ interface PlanoState {
 
     ambientes: Ambiente[]
     setAmbientes: (a: Ambiente[]) => void
+
+    // Ambientes detectados automáticamente a partir del grafo de muros.
+    // Se recalculan después de cualquier cambio en muros.
+    ambientesDetectados: AmbienteDetectado[]
+    recalcularAmbientes: () => void
 
     muros: Muro[]
     puertas: Puerta[]
@@ -182,25 +188,27 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
         if (historial.length <= 1) return
         const last = historial[historial.length - 1]
         const previous = historial[historial.length - 2]
-        
-        set({ 
-            ...previous.estado, 
-            historial: historial.slice(0, -1), 
+
+        set({
+            ...previous.estado,
+            historial: historial.slice(0, -1),
             futureHistorial: [last, ...futureHistorial],
-            idsSeleccionados: [] 
+            idsSeleccionados: []
         })
+        get().recalcularAmbientes()
     },
 
     redo: () => {
         const { historial, futureHistorial } = get()
         if (futureHistorial.length === 0) return
         const next = futureHistorial[0]
-        set({ 
-            ...next.estado, 
-            historial: [...historial, next], 
+        set({
+            ...next.estado,
+            historial: [...historial, next],
             futureHistorial: futureHistorial.slice(1),
-            idsSeleccionados: [] 
+            idsSeleccionados: []
         })
+        get().recalcularAmbientes()
     },
 
     irAEstado: (id) => {
@@ -208,12 +216,13 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
         const index = historial.findIndex(h => h.id === id)
         if (index === -1) return
         const entrada = historial[index]
-        set({ 
-            ...entrada.estado, 
+        set({
+            ...entrada.estado,
             historial: historial.slice(0, index + 1),
             futureHistorial: [],
             idsSeleccionados: []
         })
+        get().recalcularAmbientes()
     },
 
     iniciarDibujo: (p, tipo) => set({
@@ -236,6 +245,13 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
 
     ambientes: [],
     setAmbientes: (ambientes) => set({ ambientes }),
+
+    ambientesDetectados: [],
+    recalcularAmbientes: () => {
+        const { muros } = get()
+        const ambientesDetectados = detectarAmbientes(muros)
+        set({ ambientesDetectados })
+    },
 
     terminarMuro: (props, continuar = false) => {
         const { puntoInicio, puntoFin } = get()
@@ -269,8 +285,9 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
             puntoFin: continuar ? puntoFin : null,
         }))
 
-        // Ejecutar auto-sanación después de añadir un muro
+        // Auto-sanación del plano + recálculo de ambientes detectados
         get().autoSanarPlano()
+        get().recalcularAmbientes()
     },
 
     terminarPuerta: (props, pManual?: Punto) => {
@@ -533,6 +550,7 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
             areas: s.areas.filter((a) => !idsSeleccionados.includes(a.id)),
             idsSeleccionados: [],
         }))
+        get().recalcularAmbientes()
     },
 
     moverSeleccion: (dx, dy) => {
@@ -564,25 +582,30 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
         }))
     },
 
-    cargarDatos: (muros, puertas, ventanas, escaleras = [], columnas = [], cotas = [], textos = [], areas = [], ambientes = [], capas = [], historial = []) => set((state) => ({ 
-        muros, 
-        puertas, 
-        ventanas, 
-        escaleras, 
-        columnas, 
-        cotas, 
-        textos, 
-        areas, 
-        ambientes, 
-        capas: capas.length > 0 ? capas : state.capas,
-        historial: historial.length > 0 ? historial : (state.historial.length > 0 ? state.historial : []),
-        cargado: true
-    })),
+    cargarDatos: (muros, puertas, ventanas, escaleras = [], columnas = [], cotas = [], textos = [], areas = [], ambientes = [], capas = [], historial = []) => {
+        set((state) => ({
+            muros,
+            puertas,
+            ventanas,
+            escaleras,
+            columnas,
+            cotas,
+            textos,
+            areas,
+            ambientes,
+            capas: capas.length > 0 ? capas : state.capas,
+            historial: historial.length > 0 ? historial : (state.historial.length > 0 ? state.historial : []),
+            cargado: true,
+        }))
+        get().recalcularAmbientes()
+    },
 
-    actualizarMuro: (id, cambios) =>
+    actualizarMuro: (id, cambios) => {
         set((s) => ({
             muros: s.muros.map((m) => m.id === id ? { ...m, ...cambios } : m)
-        })),
+        }))
+        get().recalcularAmbientes()
+    },
 
     actualizarArea: (id, cambios) =>
         set((s) => ({
@@ -799,6 +822,8 @@ export const usePlanoStore = create<PlanoState>((set, get) => ({
         muros: [], puertas: [], ventanas: [], escaleras: [], columnas: [], cotas: [], textos: [], areas: [],
         dibujando: false, puntoInicio: null, puntoFin: null, puntoAux: null, pasoDibujo: 0, puntosPoligono: [],
         idsSeleccionados: [],
+        // Limpiar ambientes (manuales y detectados)
         ambientes: [],
+        ambientesDetectados: [],
     }),
 }))

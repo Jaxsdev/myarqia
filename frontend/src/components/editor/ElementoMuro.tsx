@@ -20,21 +20,43 @@ export function calcularCarasMuro(muro: Muro, z: number, px: number, py: number)
     const dx = x2 - x1; const dy = y2 - y1
     const len = Math.sqrt(dx * dx + dy * dy)
     if (len < 0.5) return null
-    const nx = (-dy / len) * ep
-    const ny = (dx / len) * ep
-    // cara izquierda (lado +) y cara derecha (lado -)
+
+    // Normal unitaria (lado +)
+    const ux = -dy / len
+    const uy = dx / len
+
+    // Offset del eje del muro según la alineación.
+    // La línea que dibujó el usuario (x1,y1)-(x2,y2) es:
+    //  - 'centro'    → el eje central; caras a ±ep
+    //  - 'izquierda' → la cara del lado + ; el muro crece hacia el lado -
+    //  - 'derecha'   → la cara del lado - ; el muro crece hacia el lado +
+    const c =
+        muro.alineacion === 'izquierda' ? -ep :
+        muro.alineacion === 'derecha' ? ep :
+        0
+
+    // Desplazamientos de cada cara respecto a la línea dibujada
+    const posD = c + ep   // cara lado +
+    const negD = c - ep   // cara lado -
+
+    const pPosX1 = x1 + ux * posD, pPosY1 = y1 + uy * posD
+    const pPosX2 = x2 + ux * posD, pPosY2 = y2 + uy * posD
+    const pNegX1 = x1 + ux * negD, pNegY1 = y1 + uy * negD
+    const pNegX2 = x2 + ux * negD, pNegY2 = y2 + uy * negD
+
     return {
-        // 4 vértices base sin ajuste
-        p1: { x: x1 + nx, y: y1 + ny },  // inicio lado +
-        p2: { x: x2 + nx, y: y2 + ny },  // fin   lado +
-        p3: { x: x2 - nx, y: y2 - ny },  // fin   lado -
-        p4: { x: x1 - nx, y: y1 - ny },  // inicio lado -
-        // ejes de las caras para calcular intersecciones
-        cara_pos_a: { x: x1 + nx, y: y1 + ny },
-        cara_pos_b: { x: x2 + nx, y: y2 + ny },
-        cara_neg_a: { x: x1 - nx, y: y1 - ny },
-        cara_neg_b: { x: x2 - nx, y: y2 - ny },
-        // datos originales
+        // 4 vértices del polígono del muro
+        p1: { x: pPosX1, y: pPosY1 },  // inicio lado +
+        p2: { x: pPosX2, y: pPosY2 },  // fin   lado +
+        p3: { x: pNegX2, y: pNegY2 },  // fin   lado -
+        p4: { x: pNegX1, y: pNegY1 },  // inicio lado -
+        // ejes de las caras para calcular intersecciones (mitra)
+        cara_pos_a: { x: pPosX1, y: pPosY1 },
+        cara_pos_b: { x: pPosX2, y: pPosY2 },
+        cara_neg_a: { x: pNegX1, y: pNegY1 },
+        cara_neg_b: { x: pNegX2, y: pNegY2 },
+        // línea original dibujada por el usuario — usada para detectar uniones
+        // (dos muros conectan en su eje dibujado, sin importar su alineación)
         sx1: x1, sy1: y1, sx2: x2, sy2: y2, ep,
     }
 }

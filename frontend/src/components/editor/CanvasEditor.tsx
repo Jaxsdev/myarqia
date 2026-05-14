@@ -27,13 +27,15 @@ import CapaCotas from './CapaCotas'
 import { TEMA_CLARO, TEMA_OSCURO } from '../../lib/temas'
 import CapaEtiquetas from './CapaEtiquetas'
 import ConfigModal from './ConfigModal'
+import SnapIndicator from './SnapIndicator'
+import { calcularSnap } from '../../lib/snap'
+import CapaAmbientesDetectados from './CapaAmbientesDetectados'
 
 const PX_POR_METRO = 100
 const ws = (m: number, pan: number, zoom: number) => m * PX_POR_METRO * zoom + pan
 const ZOOM_MIN = 0.2
 const ZOOM_MAX = 8
 
-function snapear(v: number, t: number) { return Math.round(v / t) * t }
 function screenToWorld(px: number, pan: number, zoom: number) {
     return (px - pan) / (PX_POR_METRO * zoom)
 }
@@ -47,6 +49,9 @@ export default function CanvasEditor() {
     const cuadroSeleccion = useRef(false)
     const ultimaPosicion = useRef({ x: 0, y: 0 })
     const posInicioMover = useRef<Punto | null>(null)
+    // Última posición del cursor en coordenadas de pantalla. Se usa para resnap
+    // al pulsar/soltar Shift sin mover el mouse.
+    const lastScreenPos = useRef<{ x: number; y: number } | null>(null)
 
     // --- Store: editor ---
     const {
@@ -58,12 +63,14 @@ export default function CanvasEditor() {
         modoClaro, modalConfigAbierto,
         propiedades,
         cursorX, cursorY,
-        rotation, setRotation
+        rotation, setRotation,
+        snapInfo, setSnapInfo,
     } = useEditorStore()
 
     // --- Store: plano ---
     const {
         muros, puertas, ventanas, escaleras, columnas, cotas, textos, areas, ambientes,
+        ambientesDetectados,
         dibujando, tipoDibujo, puntoInicio, puntoFin, puntoAux, puntosPoligono,
         idsSeleccionados, iniciarDibujo, actualizarDibujo,
         terminarMuro, terminarPuerta, terminarVentana,
@@ -159,13 +166,56 @@ export default function CanvasEditor() {
         return () => window.removeEventListener('keydown', handler)
     }, [cancelarDibujo, setHerramienta, toggleOrtho, toggleSnap, eliminarSeleccionado, undo, redo])
 
-    const getPunto = useCallback((e: MouseEvent | { clientX: number, clientY: number }): Punto => {
+    // --- Shift: re-snap inmediato al pulsar/soltar sin mover el mouse ---
+    // Mientras se está dibujando un muro, pulsar Shift debe liberar el ortho
+    // automático en tiempo real, aunque el cursor esté quieto.
+    useEffect(() => {
+        const onShift = (e: KeyboardEvent) => {
+            if (e.key !== 'Shift') return
+            if (!dibujando || !lastScreenPos.current || !contenedorRef.current) return
+
+            const rect = contenedorRef.current.getBoundingClientRect()
+            let x = lastScreenPos.current.x - rect.left
+            let y = lastScreenPos.current.y - rect.top
+            // Ajuste por rotación del viewport
+            if (rotation !== 0) {
+                const cx = tamano.width / 2
+                const cy = tamano.height / 2
+                const rad = (-rotation * Math.PI) / 180
+                const cos = Math.cos(rad), sin = Math.sin(rad)
+                const dx = x - cx, dy = y - cy
+                x = cx + (dx * cos - dy * sin)
+                y = cy + (dx * sin + dy * cos)
+            }
+            const raw = {
+                x: screenToWorld(x, panX, zoom),
+                y: screenToWorld(y, panY, zoom),
+            }
+            const res = calcularSnap(raw, {
+                muros, columnas, escaleras,
+                herramienta, zoom, snapSize, snapActivo, orthoActivo,
+                puntoInicio,
+                shiftActivo: e.type === 'keydown',
+                dibujando,
+            })
+            setSnapInfo(res.info)
+            actualizarDibujo(res.punto)
+        }
+        window.addEventListener('keydown', onShift)
+        window.addEventListener('keyup', onShift)
+        return () => {
+            window.removeEventListener('keydown', onShift)
+            window.removeEventListener('keyup', onShift)
+        }
+    }, [dibujando, panX, panY, zoom, rotation, tamano, muros, columnas, escaleras, herramienta, snapSize, snapActivo, orthoActivo, puntoInicio, setSnapInfo, actualizarDibujo])
+
+    const getPunto = useCallback((e: MouseEvent<HTMLDivElement> | { clientX: number; clientY: number }): Punto => {
         if (!contenedorRef.current) return { x: 0, y: 0 }
-        const rect = contenedorRef.current!.getBoundingClientRect()
+        const rect = contenedorRef.current.getBoundingClientRect()
         let x = e.clientX - rect.left
         let y = e.clientY - rect.top
 
-        // Ajuste por rotación (rotar el punto del mouse inversamente respecto al centro)
+        // Ajuste por rotación del viewport (rotar el punto del mouse inversamente)
         if (rotation !== 0) {
             const cx = tamano.width / 2
             const cy = tamano.height / 2
@@ -178,99 +228,25 @@ export default function CanvasEditor() {
             y = cy + (dx * sin + dy * cos)
         }
 
-        let mx = screenToWorld(x, panX, zoom)
-        let my = screenToWorld(y, panY, zoom)
-
-        // --- Lógica de Snap (Atracción) ---
-        // Radio de snap dinámico (aprox 15px en pantalla para puntos, 30px para muros)
-        const snapRadius = 15 / (PX_POR_METRO * zoom)
-        const wallSnapRadius = 30 / (PX_POR_METRO * zoom)
-        let snapped = false
-
-        // 1. Snap Obligatorio/Magnético a Muros para Puertas y Ventanas
-        // (Incluso si snapActivo es false, porque estos elementos deben ir en muros)
-        if (herramienta === 'door' || herramienta === 'window') {
-            for (const m of murosV) {
-                const l2 = (m.x2 - m.x1) ** 2 + (m.y2 - m.y1) ** 2
-                if (l2 === 0) continue
-                let t = ((mx - m.x1) * (m.x2 - m.x1) + (my - m.y1) * (m.y2 - m.y1)) / l2
-                t = Math.max(0, Math.min(1, t))
-                const px = m.x1 + t * (m.x2 - m.x1)
-                const py = m.y1 + t * (m.y2 - m.y1)
-                const d = Math.sqrt((mx - px) ** 2 + (my - py) ** 2)
-                
-                if (d < wallSnapRadius) {
-                    mx = px; my = py; snapped = true; break
-                }
-            }
+        const raw = {
+            x: screenToWorld(x, panX, zoom),
+            y: screenToWorld(y, panY, zoom),
         }
 
-        if (snapActivo && !snapped) {
-            // 2. Snap a Extremos de Muros
-            for (const m of muros) {
-                const d1 = Math.sqrt((mx - m.x1) ** 2 + (my - m.y1) ** 2)
-                const d2 = Math.sqrt((mx - m.x2) ** 2 + (my - m.y2) ** 2)
-                if (d1 < snapRadius) {
-                    mx = m.x1; my = m.y1; snapped = true; break
-                }
-                if (d2 < snapRadius) {
-                    mx = m.x2; my = m.y2; snapped = true; break
-                }
-                
-                // 3. Snap a Puntos Medios de Muros
-                const midX = (m.x1 + m.x2) / 2
-                const midY = (m.y1 + m.y2) / 2
-                const dm = Math.sqrt((mx - midX) ** 2 + (my - midY) ** 2)
-                if (dm < snapRadius) {
-                    mx = midX; my = midY; snapped = true; break
-                }
-            }
+        const res = calcularSnap(raw, {
+            muros, columnas, escaleras,
+            herramienta, zoom, snapSize, snapActivo, orthoActivo,
+            puntoInicio,
+            shiftActivo: 'shiftKey' in e ? e.shiftKey : false,
+            dibujando,
+        })
 
-            // 4. Snap a Centros de Elementos (Columnas, Escaleras)
-            if (!snapped) {
-                for (const c of columnas) {
-                    const d = Math.sqrt((mx - c.x) ** 2 + (my - c.y) ** 2)
-                    if (d < snapRadius) { mx = c.x; my = c.y; snapped = true; break }
-                }
-                for (const e of escaleras) {
-                    const midX = (e.x1 + e.x2) / 2
-                    const midY = (e.y1 + e.y2) / 2
-                    const d = Math.sqrt((mx - midX) ** 2 + (my - midY) ** 2)
-                    if (d < snapRadius) { mx = midX; my = midY; snapped = true; break }
-                }
-            }
+        // Sincronizar feedback visual del snap. Se actualiza desde un evento
+        // de mouse, así que el render es síncrono al frame.
+        setSnapInfo(res.info)
 
-            // 5. Si no hubo snap a nada, snap a rejilla (grilla)
-            if (!snapped) {
-                mx = Math.round(mx / snapSize) * snapSize
-                my = Math.round(my / snapSize) * snapSize
-            }
-        }
-
-        // Lógica Ortho: restringe a 0°, 45°, 90°, 135°, 180°, etc.
-        if (orthoActivo && puntoInicio) {
-            const dx = mx - puntoInicio.x
-            const dy = my - puntoInicio.y
-            const dist = Math.sqrt(dx * dx + dy * dy)
-
-            if (dist > 0) {
-                const angle = Math.atan2(dy, dx) * 180 / Math.PI
-                const normalizedAngle = Math.round(angle / 45) * 45
-                const rad = normalizedAngle * Math.PI / 180
-
-                mx = puntoInicio.x + Math.cos(rad) * dist
-                my = puntoInicio.y + Math.sin(rad) * dist
-
-                // Re-snap después de aplicar Ortho
-                if (snapActivo) {
-                    mx = snapear(mx, snapSize)
-                    my = snapear(my, snapSize)
-                }
-            }
-        }
-
-        return { x: mx, y: my }
-    }, [panX, panY, zoom, rotation, tamano.width, tamano.height, snapActivo, snapSize, orthoActivo, puntoInicio, muros, herramienta])
+        return res.punto
+    }, [panX, panY, zoom, rotation, tamano, snapActivo, snapSize, orthoActivo, puntoInicio, muros, columnas, escaleras, herramienta, dibujando, setSnapInfo])
 
     // --- Wheel: zoom centrado en el cursor ---
     const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
@@ -386,6 +362,7 @@ export default function CanvasEditor() {
 
     // --- MouseMove: actualiza cursor y preview ---
     const handleMouseMove = useCallback((e: MouseEvent<HTMLDivElement>) => {
+        lastScreenPos.current = { x: e.clientX, y: e.clientY }
         const p = getPunto(e)
         setCursor(p.x, p.y)
 
@@ -499,6 +476,7 @@ export default function CanvasEditor() {
                 arrastrando.current = false
                 moviendo.current = false
                 cuadroSeleccion.current = false
+                setSnapInfo(null)
             }}
         >
             <Stage width={tamano.width} height={tamano.height}>
@@ -565,6 +543,13 @@ export default function CanvasEditor() {
                         zoom={zoom} panX={panX} panY={panY}
                         visible={cotasVisibles}
                         modoClaro={modoClaro}
+                    />
+
+                    {/* Ambientes detectados automáticamente del grafo de muros */}
+                    <CapaAmbientesDetectados
+                        ambientes={ambientesDetectados}
+                        zoom={zoom} panX={panX} panY={panY}
+                        visible={nomenclaturaVisible}
                     />
 
                     <CapaEtiquetas
@@ -708,7 +693,9 @@ export default function CanvasEditor() {
                     {/* Preview muro */}
                     {dibujando && tipoDibujo === 'muro' && puntoInicio && puntoFin && (
                         <PreviewMuro inicio={puntoInicio} fin={puntoFin}
-                            espesor={propiedades.muro.espesor} zoom={zoom} panX={panX} panY={panY} />
+                            espesor={propiedades.muro.espesor}
+                            alineacion={propiedades.muro.alineacion}
+                            zoom={zoom} panX={panX} panY={panY} />
                     )}
 
                     {/* Preview Polígono de Área */}
@@ -734,6 +721,11 @@ export default function CanvasEditor() {
                             zoom={zoom} panX={panX} panY={panY}
                             paso={pasoDibujo}
                         />
+                    )}
+
+                    {/* Indicador visual del snap activo */}
+                    {snapInfo && herramienta !== 'select' && (
+                        <SnapIndicator info={snapInfo} zoom={zoom} panX={panX} panY={panY} />
                     )}
 
                     {/* Cuadro de selección */}
