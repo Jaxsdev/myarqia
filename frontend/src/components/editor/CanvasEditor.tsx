@@ -623,7 +623,9 @@ export default function CanvasEditor() {
                     {/* Preview muro */}
                     {dibujando && tipoDibujo === 'muro' && puntoInicio && puntoFin && (
                         <PreviewMuro inicio={puntoInicio} fin={puntoFin}
-                            espesor={propiedades.muro.espesor} zoom={zoom} panX={panX} panY={panY} />
+                            espesor={propiedades.muro.espesor}
+                            alineacion={propiedades.muro.alineacion}
+                            zoom={zoom} panX={panX} panY={panY} />
                     )}
 
                     {/* Preview Polígono de Área */}

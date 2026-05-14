@@ -8,6 +8,7 @@ interface Props {
     zoom: number
     panX: number
     panY: number
+    alineacion?: 'izquierda' | 'centro' | 'derecha'
 }
 
 const PX = 100
@@ -18,14 +19,15 @@ function ws(metros: number, pan: number, zoom: number) {
 
 // Preview en vivo del muro que se está dibujando.
 // Dibuja el contorno semitransparente + una etiqueta flotante con la
-// longitud en metros y el ángulo en grados.
-export default function PreviewMuro({ inicio, fin, espesor, zoom, panX, panY }: Props) {
+// longitud en metros y el ángulo en grados. Respeta la alineación elegida.
+export default function PreviewMuro({ inicio, fin, espesor, zoom, panX, panY, alineacion = 'centro' }: Props) {
     const x1s = ws(inicio.x, panX, zoom)
     const y1s = ws(inicio.y, panY, zoom)
     const x2s = ws(fin.x, panX, zoom)
     const y2s = ws(fin.y, panY, zoom)
 
     const espesorPx = espesor * PX * zoom
+    const ep = espesorPx / 2
 
     const dx = x2s - x1s
     const dy = y2s - y1s
@@ -36,18 +38,22 @@ export default function PreviewMuro({ inicio, fin, espesor, zoom, panX, panY }: 
     const longitudM = Math.sqrt(
         (fin.x - inicio.x) ** 2 + (fin.y - inicio.y) ** 2
     )
-    // Ángulo en pantalla (y crece hacia abajo, así que el ángulo visual = atan2 mundo)
     let anguloDeg = Math.atan2(fin.y - inicio.y, fin.x - inicio.x) * 180 / Math.PI
-    // Normalizar a [0, 360)
     if (anguloDeg < 0) anguloDeg += 360
 
-    const nx = (-dy / longitudPx) * (espesorPx / 2)
-    const ny = (dx / longitudPx) * (espesorPx / 2)
+    // Normal unitaria
+    const ux = -dy / longitudPx
+    const uy = dx / longitudPx
 
-    const p1 = { x: x1s + nx, y: y1s + ny }
-    const p2 = { x: x2s + nx, y: y2s + ny }
-    const p3 = { x: x2s - nx, y: y2s - ny }
-    const p4 = { x: x1s - nx, y: y1s - ny }
+    // Offset del eje según alineación (igual que calcularCarasMuro)
+    const c = alineacion === 'izquierda' ? -ep : alineacion === 'derecha' ? ep : 0
+    const posD = c + ep
+    const negD = c - ep
+
+    const p1 = { x: x1s + ux * posD, y: y1s + uy * posD }
+    const p2 = { x: x2s + ux * posD, y: y2s + uy * posD }
+    const p3 = { x: x2s + ux * negD, y: y2s + uy * negD }
+    const p4 = { x: x1s + ux * negD, y: y1s + uy * negD }
 
     // Posición de la etiqueta: punto medio del muro, desplazada perpendicularmente
     const midX = (x1s + x2s) / 2
