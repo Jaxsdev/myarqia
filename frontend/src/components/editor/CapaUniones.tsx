@@ -32,6 +32,130 @@ function intersLineas(a1: Vec2, a2: Vec2, b1: Vec2, b2: Vec2): Vec2 | null {
     return { x: a1.x + t * dax, y: a1.y + t * day }
 }
 
+// Intersecta la recta a1-a2 contra varias rectas candidatas y devuelve la
+// intersección MÁS CERCANA al punto de referencia `ref`, dentro de `maxDist`.
+function mejorInterseccion(
+    a1: Vec2, a2: Vec2,
+    candidatos: [Vec2, Vec2][],
+    ref: Vec2,
+    maxDist: number,
+): Vec2 | null {
+    let best: Vec2 | null = null
+    let bestD = maxDist
+    for (const [b1, b2] of candidatos) {
+        const p = intersLineas(a1, a2, b1, b2)
+        if (!p) continue
+        const d = dist(p, ref)
+        if (d < bestD) { bestD = d; best = p }
+    }
+    return best
+}
+
+// Estructura mínima de las caras de un muro (subset de calcularCarasMuro).
+export interface CarasMuro {
+    cara_pos_a: Vec2; cara_pos_b: Vec2
+    cara_neg_a: Vec2; cara_neg_b: Vec2
+    sx1: number; sy1: number; sx2: number; sy2: number
+    ep: number
+}
+
+// Ajusta los 4 vértices de un muro `c` por las uniones con los demás muros.
+// Devuelve { p1, p2, p3, p4 } ya mitrados.
+//
+// Maneja L-junctions y T-junctions y es robusto frente a la orientación con
+// que se dibujó cada muro:
+//   - L-corner: empareja las caras según su "inner-ness" — si la normal de
+//     la cara apunta hacia el cuerpo del otro muro. Así pos↔pos vs pos↔neg
+//     se decide por geometría real, no por la etiqueta del lado.
+//   - T-junction: ambas caras del muro que llega terminan en la MISMA cara
+//     (la cercana) del muro atravesado.
+export function ajustarPoligonoMuro(
+    c: CarasMuro,
+    otras: (CarasMuro | null)[],
+    UMBRAL: number,
+): { p1: Vec2; p2: Vec2; p3: Vec2; p4: Vec2 } {
+    let p1 = { x: c.cara_pos_a.x, y: c.cara_pos_a.y }
+    let p2 = { x: c.cara_pos_b.x, y: c.cara_pos_b.y }
+    let p3 = { x: c.cara_neg_b.x, y: c.cara_neg_b.y }
+    let p4 = { x: c.cara_neg_a.x, y: c.cara_neg_a.y }
+
+    const ini = { x: c.sx1, y: c.sy1 }
+    const fin = { x: c.sx2, y: c.sy2 }
+    const iMid = { x: (c.sx1 + c.sx2) / 2, y: (c.sy1 + c.sy2) / 2 }
+    const iPos: [Vec2, Vec2] = [c.cara_pos_a, c.cara_pos_b]
+    const iNeg: [Vec2, Vec2] = [c.cara_neg_a, c.cara_neg_b]
+    // Normal + de i (sin normalizar): perpendicular al eje
+    const iNx = -(c.sy2 - c.sy1)
+    const iNy = (c.sx2 - c.sx1)
+    const limite = c.ep * 6
+
+    const procesar = (extremo: Vec2, esIni: boolean) => {
+        const lejano = esIni ? fin : ini
+
+        for (const co of otras) {
+            if (!co) continue
+            const oIni = { x: co.sx1, y: co.sy1 }
+            const oFin = { x: co.sx2, y: co.sy2 }
+            const jPos: [Vec2, Vec2] = [co.cara_pos_a, co.cara_pos_b]
+            const jNeg: [Vec2, Vec2] = [co.cara_neg_a, co.cara_neg_b]
+
+            const esquina =
+                dist(extremo, oIni) < UMBRAL || dist(extremo, oFin) < UMBRAL
+            const esT = !esquina && puntoEnSegmentoInterior(extremo, oIni, oFin, UMBRAL)
+            if (!esquina && !esT) continue
+
+            let caraParaPos: [Vec2, Vec2]
+            let caraParaNeg: [Vec2, Vec2]
+
+            if (esT) {
+                // T-junction: ambas caras de i terminan en la cara CERCANA de j.
+                // El extremo lejano de i indica de qué lado del eje de j está
+                // el cuerpo de i; esa es la cara cercana.
+                const jdx = oFin.x - oIni.x
+                const jdy = oFin.y - oIni.y
+                // cross > 0 ⇒ lejano del lado +normal de j ⇒ cara cercana = jPos
+                const cross = jdx * (lejano.y - oIni.y) - jdy * (lejano.x - oIni.x)
+                caraParaPos = cross > 0 ? jPos : jNeg
+                caraParaNeg = caraParaPos
+            } else {
+                // L-corner: emparejar por inner-ness.
+                // i.cara_pos es "inner" si la normal+ de i apunta hacia el
+                // cuerpo de j (su punto medio).
+                const jMid = { x: (oIni.x + oFin.x) / 2, y: (oIni.y + oFin.y) / 2 }
+                const dirIaJ = { x: jMid.x - extremo.x, y: jMid.y - extremo.y }
+                const iPosInner = iNx * dirIaJ.x + iNy * dirIaJ.y > 0
+
+                // j.cara_pos es "inner" si la normal+ de j apunta hacia el
+                // cuerpo de i.
+                const jNx = -(co.sy2 - co.sy1)
+                const jNy = (co.sx2 - co.sx1)
+                const dirJaI = { x: iMid.x - extremo.x, y: iMid.y - extremo.y }
+                const jPosInner = jNx * dirJaI.x + jNy * dirJaI.y > 0
+
+                const posVaConPos = iPosInner === jPosInner
+                caraParaPos = posVaConPos ? jPos : jNeg
+                caraParaNeg = posVaConPos ? jNeg : jPos
+            }
+
+            const nuevoPos = mejorInterseccion(iPos[0], iPos[1], [caraParaPos], extremo, limite)
+            const nuevoNeg = mejorInterseccion(iNeg[0], iNeg[1], [caraParaNeg], extremo, limite)
+
+            if (esIni) {
+                if (nuevoPos) p1 = nuevoPos
+                if (nuevoNeg) p4 = nuevoNeg
+            } else {
+                if (nuevoPos) p2 = nuevoPos
+                if (nuevoNeg) p3 = nuevoNeg
+            }
+        }
+    }
+
+    procesar(ini, true)
+    procesar(fin, false)
+
+    return { p1, p2, p3, p4 }
+}
+
 // ¿El punto p cae sobre el INTERIOR de un segmento a-b, formando una T real?
 //
 // Para distinguir una T-junction genuina de una esquina imprecisa, NO basta
@@ -125,78 +249,13 @@ export default function CapaUniones({ muros, puertas, ventanas, zoom, panX, panY
                 const caras = muros.map((m) => calcularCarasMuro(m, zoom, panX, panY))
                 const UMBRAL = umbralPx(zoom)
 
-                // Calcular polígonos ajustados con intersecciones en mitra
+                // Calcular polígonos ajustados con intersecciones en mitra.
+                // La lógica de unión (L y T) vive en ajustarPoligonoMuro.
                 const polys = muros.map((_muro, i) => {
                     const c = caras[i]
                     if (!c) return null
-
-                    let p1 = { ...c.p1 }
-                    let p2 = { ...c.p2 }
-                    let p3 = { ...c.p3 }
-                    let p4 = { ...c.p4 }
-
-                    const ini = { x: c.sx1, y: c.sy1 }
-                    const fin = { x: c.sx2, y: c.sy2 }
-
-                    muros.forEach((_, j) => {
-                        if (i === j) return
-                        const co = caras[j]
-                        if (!co) return
-
-                        const oIni = { x: co.sx1, y: co.sy1 }
-                        const oFin = { x: co.sx2, y: co.sy2 }
-
-                        // Trigger de unión: extremo-con-extremo (L) o extremo-sobre-interior (T).
-                        // El segundo caso es la T-junction — el extremo de "i" cae sobre la
-                        // línea media de "j" y debemos extender las caras de i hasta tocar
-                        // las caras de j.
-                        const iniConectaJ =
-                            dist(ini, oIni) < UMBRAL || dist(ini, oFin) < UMBRAL ||
-                            puntoEnSegmentoInterior(ini, oIni, oFin, UMBRAL)
-                        const finConectaJ =
-                            dist(fin, oIni) < UMBRAL || dist(fin, oFin) < UMBRAL ||
-                            puntoEnSegmentoInterior(fin, oIni, oFin, UMBRAL)
-
-                        if (iniConectaJ) {
-                            const np = intersLineas(
-                                c.cara_pos_a, c.cara_pos_b,
-                                co.cara_pos_a, co.cara_pos_b
-                            ) || intersLineas(
-                                c.cara_pos_a, c.cara_pos_b,
-                                co.cara_neg_a, co.cara_neg_b
-                            )
-                            const nn = intersLineas(
-                                c.cara_neg_a, c.cara_neg_b,
-                                co.cara_neg_a, co.cara_neg_b
-                            ) || intersLineas(
-                                c.cara_neg_a, c.cara_neg_b,
-                                co.cara_pos_a, co.cara_pos_b
-                            )
-                            if (np && dist(np, ini) < c.ep * 6) p1 = np
-                            if (nn && dist(nn, ini) < c.ep * 6) p4 = nn
-                        }
-
-                        if (finConectaJ) {
-                            const np = intersLineas(
-                                c.cara_pos_a, c.cara_pos_b,
-                                co.cara_pos_a, co.cara_pos_b
-                            ) || intersLineas(
-                                c.cara_pos_a, c.cara_pos_b,
-                                co.cara_neg_a, co.cara_neg_b
-                            )
-                            const nn = intersLineas(
-                                c.cara_neg_a, c.cara_neg_b,
-                                co.cara_neg_a, co.cara_neg_b
-                            ) || intersLineas(
-                                c.cara_neg_a, c.cara_neg_b,
-                                co.cara_pos_a, co.cara_pos_b
-                            )
-                            if (np && dist(np, fin) < c.ep * 6) p2 = np
-                            if (nn && dist(nn, fin) < c.ep * 6) p3 = nn
-                        }
-                    })
-
-                    return { p1, p2, p3, p4 }
+                    const otras = caras.filter((_, j) => j !== i)
+                    return ajustarPoligonoMuro(c, otras, UMBRAL)
                 })
 
                 raw.save()
