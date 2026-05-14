@@ -32,18 +32,27 @@ function intersLineas(a1: Vec2, a2: Vec2, b1: Vec2, b2: Vec2): Vec2 | null {
     return { x: a1.x + t * dax, y: a1.y + t * day }
 }
 
-// ¿El punto p cae sobre el INTERIOR (no extremos) del segmento a-b dentro de tol?
-// Devuelve true si la proyección está entre [margen, 1-margen] del segmento y la
-// distancia perpendicular es menor que tol. Excluir los extremos evita conflicto
-// con la lógica de mitra para esquinas (que ya cubre extremo-con-extremo).
+// ¿El punto p cae sobre el INTERIOR de un segmento a-b, formando una T real?
+//
+// Para distinguir una T-junction genuina de una esquina imprecisa, NO basta
+// con excluir un porcentaje del largo (t < 0.05): en muros cortos ese margen
+// es minúsculo y una esquina mal dibujada cae dentro. La distinción correcta
+// es por distancia absoluta a los extremos: si p está cerca de un extremo de
+// a-b, es una esquina (otra lógica la maneja), no una T.
 function puntoEnSegmentoInterior(p: Vec2, a: Vec2, b: Vec2, tol: number): boolean {
     const l2 = (b.x - a.x) ** 2 + (b.y - a.y) ** 2
     if (l2 < 1) return false
     const t = ((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / l2
-    if (t < 0.05 || t > 0.95) return false
+    if (t <= 0 || t >= 1) return false   // proyección fuera del segmento
     const px = a.x + t * (b.x - a.x)
     const py = a.y + t * (b.y - a.y)
-    return Math.sqrt((p.x - px) ** 2 + (p.y - py) ** 2) < tol
+    // Distancia perpendicular: el muro debe tocar realmente la línea.
+    if (Math.sqrt((p.x - px) ** 2 + (p.y - py) ** 2) >= tol) return false
+    // Rechazo por cercanía a los extremos: una T real está claramente
+    // separada de los vértices del muro que atraviesa.
+    const margen = tol * 2
+    if (dist(p, a) < margen || dist(p, b) < margen) return false
+    return true
 }
 
 // Umbral en píxeles de pantalla para detección de uniones — se recalcula en cada render
