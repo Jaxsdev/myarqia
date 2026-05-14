@@ -32,6 +32,20 @@ function intersLineas(a1: Vec2, a2: Vec2, b1: Vec2, b2: Vec2): Vec2 | null {
     return { x: a1.x + t * dax, y: a1.y + t * day }
 }
 
+// ¿El punto p cae sobre el INTERIOR (no extremos) del segmento a-b dentro de tol?
+// Devuelve true si la proyección está entre [margen, 1-margen] del segmento y la
+// distancia perpendicular es menor que tol. Excluir los extremos evita conflicto
+// con la lógica de mitra para esquinas (que ya cubre extremo-con-extremo).
+function puntoEnSegmentoInterior(p: Vec2, a: Vec2, b: Vec2, tol: number): boolean {
+    const l2 = (b.x - a.x) ** 2 + (b.y - a.y) ** 2
+    if (l2 < 1) return false
+    const t = ((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / l2
+    if (t < 0.05 || t > 0.95) return false
+    const px = a.x + t * (b.x - a.x)
+    const py = a.y + t * (b.y - a.y)
+    return Math.sqrt((p.x - px) ** 2 + (p.y - py) ** 2) < tol
+}
+
 // Umbral en píxeles de pantalla para detección de uniones — se recalcula en cada render
 // como 0.10m * PX * zoom para mantenerse constante en el espacio del mundo
 function umbralPx(zoom: number) { return 0.10 * PX * zoom }
@@ -73,8 +87,18 @@ export default function CapaUniones({ muros, puertas, ventanas, zoom, panX, panY
                         const oIni = { x: co.sx1, y: co.sy1 }
                         const oFin = { x: co.sx2, y: co.sy2 }
 
-                        // Conexión en INICIO
-                        if (dist(ini, oIni) < UMBRAL || dist(ini, oFin) < UMBRAL) {
+                        // Trigger de unión: extremo-con-extremo (L) o extremo-sobre-interior (T).
+                        // El segundo caso es la T-junction — el extremo de "i" cae sobre la
+                        // línea media de "j" y debemos extender las caras de i hasta tocar
+                        // las caras de j.
+                        const iniConectaJ =
+                            dist(ini, oIni) < UMBRAL || dist(ini, oFin) < UMBRAL ||
+                            puntoEnSegmentoInterior(ini, oIni, oFin, UMBRAL)
+                        const finConectaJ =
+                            dist(fin, oIni) < UMBRAL || dist(fin, oFin) < UMBRAL ||
+                            puntoEnSegmentoInterior(fin, oIni, oFin, UMBRAL)
+
+                        if (iniConectaJ) {
                             const np = intersLineas(
                                 c.cara_pos_a, c.cara_pos_b,
                                 co.cara_pos_a, co.cara_pos_b
@@ -93,8 +117,7 @@ export default function CapaUniones({ muros, puertas, ventanas, zoom, panX, panY
                             if (nn && dist(nn, ini) < c.ep * 6) p4 = nn
                         }
 
-                        // Conexión en FIN
-                        if (dist(fin, oIni) < UMBRAL || dist(fin, oFin) < UMBRAL) {
+                        if (finConectaJ) {
                             const np = intersLineas(
                                 c.cara_pos_a, c.cara_pos_b,
                                 co.cara_pos_a, co.cara_pos_b
@@ -178,8 +201,15 @@ export default function CapaUniones({ muros, puertas, ventanas, zoom, panX, panY
                         if (!co) return
                         const oIni = { x: co.sx1, y: co.sy1 }
                         const oFin = { x: co.sx2, y: co.sy2 }
-                        if (dist(ini, oIni) < UMBRAL || dist(ini, oFin) < UMBRAL) iniConectado = true
-                        if (dist(fin, oIni) < UMBRAL || dist(fin, oFin) < UMBRAL) finConectado = true
+                        // Conexión en esquina (L) o T-junction (extremo sobre interior)
+                        if (
+                            dist(ini, oIni) < UMBRAL || dist(ini, oFin) < UMBRAL ||
+                            puntoEnSegmentoInterior(ini, oIni, oFin, UMBRAL)
+                        ) iniConectado = true
+                        if (
+                            dist(fin, oIni) < UMBRAL || dist(fin, oFin) < UMBRAL ||
+                            puntoEnSegmentoInterior(fin, oIni, oFin, UMBRAL)
+                        ) finConectado = true
                     })
 
                     raw.beginPath()
