@@ -16,13 +16,27 @@ const MODELOS = [
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
 
 
-// Sanitiza un valor numérico de la IA, devolviendo el fallback si es NaN/Infinity
 function safeNum(v: unknown, fallback: number): number {
     const n = Number(v)
     return Number.isFinite(n) ? n : fallback
 }
 
-// Convierte la respuesta JSON de la IA en muros para el canvas
+// Snaps a value to the nearest multiple of 0.05m
+function snap05(v: number): number {
+    return Math.round(v / 0.05) * 0.05
+}
+
+// Finds the real muro id by matching the IA's muro_id string against the id map
+function resolverMuroId(muroIdIA: string | undefined, mapaIds: Map<string, string>): string {
+    if (!muroIdIA) return ''
+    return mapaIds.get(muroIdIA) ?? ''
+}
+
+// Resolves the rotation from a muro's geometry (for puertas/ventanas that don't carry rotation)
+function rotacionDeMuro(muro: { x1: number; y1: number; x2: number; y2: number }): number {
+    return Math.atan2(muro.y2 - muro.y1, muro.x2 - muro.x1)
+}
+
 function procesarRespuestaIA(texto: string) {
     try {
         const limpio = texto.replace(/```json/g, '').replace(/```/g, '').trim()
@@ -30,102 +44,120 @@ function procesarRespuestaIA(texto: string) {
 
         if (data.accion === 'generar_planta' && data.planta?.muros) {
             const plano = data.planta
-
-            // Limpiar el plano actual
             usePlanoStore.getState().limpiarTodo()
 
-            // ── Agregar MUROS usando el mismo formato que MyARQIA ──
-            plano.muros?.forEach((m: any, i: number) => {
-                usePlanoStore.setState((s) => ({
-                    muros: [...s.muros, {
-                        id: `muro-ia-${i}-${Date.now()}`,
-                        x1: safeNum(m.x1, 0),
-                        y1: safeNum(m.y1, 0),
-                        x2: safeNum(m.x2, 0),
-                        y2: safeNum(m.y2, 0),
-                        espesor: safeNum(m.espesor, 0.15),
-                        altura: safeNum(m.altura, 2.40),
-                        tipo: m.tipo || 'simple',
-                        material: m.material || 'ladrillo',
-                        alineacion: m.alineacion || 'centro',
-                        layer: 'A-WALL' as const,
-                    }]
-                }))
+            // ── Build muro id map: IA id → real DOM id ──────────────
+            // Also snap all coordinates to 0.05m grid
+            const mapaIds = new Map<string, string>()
+            const murosProcesados = (plano.muros ?? []).map((m: any, i: number) => {
+                const realId = `muro-ia-${i}-${Date.now()}`
+                if (m.id) mapaIds.set(String(m.id), realId)
+                return {
+                    id: realId,
+                    x1: snap05(safeNum(m.x1, 0)),
+                    y1: snap05(safeNum(m.y1, 0)),
+                    x2: snap05(safeNum(m.x2, 0)),
+                    y2: snap05(safeNum(m.y2, 0)),
+                    espesor: safeNum(m.espesor, 0.15),
+                    altura: safeNum(m.altura, 2.80),
+                    tipo: m.tipo || 'simple',
+                    material: m.material || 'ladrillo',
+                    alineacion: m.alineacion || 'centro',
+                    layer: 'A-WALL' as const,
+                    // keep IA id reference for abertura lookup below
+                    _iaId: m.id ? String(m.id) : null,
+                }
             })
 
-            // ── Agregar PUERTAS si la IA las incluye ──────────────
-            plano.puertas?.forEach((p: any, i: number) => {
-                usePlanoStore.setState((s) => ({
-                    puertas: [...s.puertas, {
-                        id: `puerta-ia-${i}-${Date.now()}`,
-                        muro_id: '',
-                        x: safeNum(p.x, 0),
-                        y: safeNum(p.y, 0),
-                        rotacion: safeNum(p.rotacion, 0),
-                        ancho: safeNum(p.ancho, 0.90),
-                        sentido: p.sentido || 'derecha',
-                        angulo: safeNum(p.angulo, 90),
-                        tipo: p.tipo || 'simple',
-                        layer: 'A-DOOR' as const,
-                    }]
-                }))
-            })
+            // Index processed muros by real id for fast lookup
+            type MuroLite = { x1: number; y1: number; x2: number; y2: number }
+            const murosPorRealId = new Map<string, MuroLite>(
+                murosProcesados.map((m: any) => [m.id as string, m as MuroLite])
+            )
 
-            // ── Agregar VENTANAS si la IA las incluye ─────────────
-            plano.ventanas?.forEach((v: any, i: number) => {
-                usePlanoStore.setState((s) => ({
-                    ventanas: [...s.ventanas, {
-                        id: `ventana-ia-${i}-${Date.now()}`,
-                        muro_id: '',
-                        x: safeNum(v.x, 0),
-                        y: safeNum(v.y, 0),
-                        rotacion: safeNum(v.rotacion, 0),
-                        ancho: safeNum(v.ancho, 1.20),
-                        alto: safeNum(v.alto, 1.20),
-                        alfeizar: safeNum(v.alfeizar, 0.90),
-                        tipo: v.tipo || 'corredera',
-                        layer: 'A-WIND' as const,
-                    }]
-                }))
-            })
+            // ── Insert MUROS ─────────────────────────────────────────
+            usePlanoStore.setState(() => ({
+                muros: murosProcesados.map(({ _iaId: _discard, ...m }: any) => m),
+            }))
 
-            // ── Guardar ambientes para etiquetas ──────────────────
+            // ── Insert PUERTAS with resolved muro_id + rotation ──────
+            const ts = Date.now()
+            const puertas = (plano.puertas ?? []).map((p: any, i: number) => {
+                const realMuroId = resolverMuroId(p.muro_id ? String(p.muro_id) : undefined, mapaIds)
+                const muro = murosPorRealId.get(realMuroId)
+                const rotRaw = Number(p.rotacion)
+                const rot = Number.isFinite(rotRaw) ? rotRaw : (muro ? rotacionDeMuro(muro) : 0)
+                return {
+                    id: `puerta-ia-${i}-${ts}`,
+                    muro_id: realMuroId,
+                    x: snap05(safeNum(p.x, 0)),
+                    y: snap05(safeNum(p.y, 0)),
+                    rotacion: rot,
+                    ancho: safeNum(p.ancho, 0.90),
+                    sentido: p.sentido || 'derecha',
+                    angulo: safeNum(p.angulo, 90),
+                    tipo: p.tipo || 'simple',
+                    layer: 'A-DOOR' as const,
+                }
+            })
+            usePlanoStore.setState(() => ({ puertas }))
+
+            // ── Insert VENTANAS with resolved muro_id + rotation ─────
+            const ventanas = (plano.ventanas ?? []).map((v: any, i: number) => {
+                const realMuroId = resolverMuroId(v.muro_id ? String(v.muro_id) : undefined, mapaIds)
+                const muro = murosPorRealId.get(realMuroId)
+                const rotRaw = Number(v.rotacion)
+                const rot = Number.isFinite(rotRaw) ? rotRaw : (muro ? rotacionDeMuro(muro) : 0)
+                return {
+                    id: `ventana-ia-${i}-${ts}`,
+                    muro_id: realMuroId,
+                    x: snap05(safeNum(v.x, 0)),
+                    y: snap05(safeNum(v.y, 0)),
+                    rotacion: rot,
+                    ancho: safeNum(v.ancho, 1.20),
+                    alto: safeNum(v.alto, 1.20),
+                    alfeizar: safeNum(v.alfeizar, 0.90),
+                    tipo: v.tipo || 'corredera',
+                    layer: 'A-WIND' as const,
+                }
+            })
+            usePlanoStore.setState(() => ({ ventanas }))
+
+            // ── Ambientes ─────────────────────────────────────────────
             if (plano.ambientes?.length > 0) {
                 usePlanoStore.getState().setAmbientes(plano.ambientes)
             }
 
-            // ── Centrar la vista en el plano generado ────────────
-            const todosX = plano.muros?.flatMap((m: any) => [m.x1, m.x2]) || []
-            const todosY = plano.muros?.flatMap((m: any) => [m.y1, m.y2]) || []
+            // Recalcular ambientes detectados a partir del grafo de muros
+            // recién insertado (los muros se setearon vía setState directo).
+            usePlanoStore.getState().recalcularAmbientes()
+
+            // ── Centrar viewport ──────────────────────────────────────
+            const todosX = murosProcesados.flatMap((m: any) => [m.x1, m.x2])
+            const todosY = murosProcesados.flatMap((m: any) => [m.y1, m.y2])
             if (todosX.length > 0) {
-                const minX = Math.min(...todosX)
-                const maxX = Math.max(...todosX)
-                const minY = Math.min(...todosY)
-                const maxY = Math.max(...todosY)
+                const minX = Math.min(...todosX), maxX = Math.max(...todosX)
+                const minY = Math.min(...todosY), maxY = Math.max(...todosY)
                 const centroX = (minX + maxX) / 2
                 const centroY = (minY + maxY) / 2
-
-                // Centrar viewport en el plano generado
                 setTimeout(() => {
                     const PX = 100
                     const viewW = window.innerWidth * 0.55
                     const viewH = window.innerHeight * 0.75
-                    const anchoPlano = (maxX - minX) * PX
-                    const altoPlano = (maxY - minY) * PX
                     const zoomFit = Math.min(
-                        viewW / (anchoPlano + 100),
-                        viewH / (altoPlano + 100),
+                        viewW / ((maxX - minX) * PX + 120),
+                        viewH / ((maxY - minY) * PX + 120),
                         2.0
                     )
-                    const panX = viewW / 2 - centroX * PX * zoomFit
-                    const panY = viewH / 2 - centroY * PX * zoomFit
-
                     useEditorStore.getState().setZoom(zoomFit)
-                    useEditorStore.getState().setPan(panX, panY)
+                    useEditorStore.getState().setPan(
+                        viewW / 2 - centroX * PX * zoomFit,
+                        viewH / 2 - centroY * PX * zoomFit,
+                    )
                 }, 100)
             }
 
-            return data.mensaje || '¡Planta generada con las herramientas de MyARQIA!'
+            return data.mensaje || '¡Planta generada!'
         }
 
         return data.mensaje || texto
