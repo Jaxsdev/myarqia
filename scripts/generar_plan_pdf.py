@@ -2,11 +2,12 @@
 Genera el PDF del Plan de Trabajo MVP del equipo MyARQIA.
 Salida: docs/PLAN_MVP_EQUIPO.pdf
 
-Versión 3.0:
-- Celdas largas usan Paragraph (texto se ajusta y no se desborda).
-- Cada tarea tiene priority badge (P0 critico / P1 importante / P2 deseable).
-- Nueva seccion "Prioridades" con matriz MoSCoW y ruta critica.
-- Mejor visual hierarchy y page breaks.
+Versión 4.0:
+- Parte estrategica (I, II, III, IV) antes de la parte operativa (1, 2, 3, ...).
+- Resumen ejecutivo + contexto del proyecto.
+- Vision estrategica con posicionamiento y moat de 5 puntos.
+- Analisis competitivo (Archicad, Revit, SketchUp, Blender, Maket.ai, etc).
+- Roadmap completo MVP -> v1.0 -> v3.0 con tool use architecture.
 """
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -270,7 +271,7 @@ def header_footer(canvas, doc):
         canvas.drawString(2 * cm, A4[1] - 1.3 * cm,
                           "MyARQIA · Plan de Trabajo MVP")
         canvas.drawRightString(A4[0] - 2 * cm, A4[1] - 1.3 * cm,
-                               f"Versión 3.0 · {date.today().isoformat()}")
+                               f"Versión 4.0 · {date.today().isoformat()}")
         canvas.setStrokeColor(colors.lightgrey)
         canvas.line(2 * cm, A4[1] - 1.5 * cm, A4[0] - 2 * cm, A4[1] - 1.5 * cm)
     canvas.setFont("Helvetica", 8)
@@ -304,13 +305,353 @@ story.append(Spacer(1, 1.5 * cm))
 
 # Versión / metadata
 meta = [
-    ["Versión", "3.0 (con prioridades + ruta crítica)"],
+    ["Versión", "4.0 (estratégica + roadmap + análisis competitivo)"],
     ["Fecha", date.today().isoformat()],
     ["Repositorio", "github.com/Jaxsdev/myarqia"],
     ["Rama de integración", "feature/modulo-1-topbar"],
 ]
 story.append(tabla(meta, col_widths=[5 * cm, 12 * cm], header_color=GRIS_MEDIO, alt=False))
 story.append(PageBreak())
+
+# ════════════════════════════════════════════════════════════════════
+# ÍNDICE
+# ════════════════════════════════════════════════════════════════════
+story.append(P("Índice", "H1"))
+story.append(P(
+    "El documento se divide en dos partes. La <b>parte estratégica</b> "
+    "(I-IV) explica el qué y el por qué del proyecto en pocas páginas. "
+    "La <b>parte operativa</b> (1-13) detalla cómo lo vamos a construir.",
+    "Lead"))
+
+indice = [
+    ["Sección", "Para quién", "Páginas"],
+    ["<b>PARTE ESTRATÉGICA</b>", "", ""],
+    ["I · Resumen ejecutivo y contexto",
+     "Todos. Lectura obligatoria de 3 min.", "3-4"],
+    ["II · Visión estratégica y diferenciación",
+     "Todos. Define el norte del producto.", "5"],
+    ["III · Análisis competitivo",
+     "Lead + arquitecta. Define el mercado.", "6-7"],
+    ["IV · Roadmap del producto",
+     "Todos. MVP → v1.0 → v1.5 → v2.0 → v3.0", "8-9"],
+    ["<b>PARTE OPERATIVA (MVP)</b>", "", ""],
+    ["1 · Visión del MVP", "Equipo", "10-11"],
+    ["2 · Estado actual del prototipo", "Equipo", "12-13"],
+    ["3 · Prioridades y ruta crítica", "Equipo", "14-15"],
+    ["4 · Brechas + 5 · Roles", "Equipo", "16-17"],
+    ["6 · Sprint 1 — Tareas por persona", "Cada uno la suya", "18-23"],
+    ["7 · Sprint 2 + 8-12 · Procesos", "Equipo", "24-27"],
+    ["13 · Demo de aceptación", "Todos", "28"],
+]
+story.append(tabla(indice, col_widths=[8 * cm, 7 * cm, 2 * cm]))
+story.append(PageBreak())
+
+# ════════════════════════════════════════════════════════════════════
+# PARTE ESTRATÉGICA
+# ════════════════════════════════════════════════════════════════════
+
+# ─── I · Resumen ejecutivo y contexto ───
+story.append(P("I · Resumen ejecutivo y contexto", "H1"))
+
+story.append(P("¿Qué es MyARQIA?", "H2"))
+story.append(P(
+    "MyARQIA es una <b>app web</b> que permite a cualquier persona generar "
+    "<b>planos arquitectónicos profesionales</b> describiendo lo que "
+    "quiere en lenguaje natural. La IA, alimentada con el RNE "
+    "(Reglamento Nacional de Edificaciones del Perú), produce en menos "
+    "de 30 segundos un plano básico bien distribuido, editable en un "
+    "editor CAD 2D y visualizable en 3D, listo para guardar y exportar "
+    "como PDF.", "Body"))
+
+story.append(P(
+    "Es, en una frase: <b>como ChatGPT pero en vez de devolverte texto te "
+    "devuelve un plano arquitectónico, hecho para LATAM y a un precio "
+    "que un estudiante puede pagar</b>.", "Quote"))
+
+story.append(P("Cómo llegamos hasta aquí (contexto breve)", "H2"))
+contexto = [
+    ["#", "Hito"],
+    ["🌱 Origen",
+     "Idea de bajar la barrera de entrada al diseño arquitectónico. Hoy "
+     "un arquitecto recién egresado o estudiante necesita pagar "
+     "~$2,400/año por Archicad, o aprender Blender + BlenderBIM (curva "
+     "de meses), para hacer un plano profesional."],
+    ["🛠️ Prototipo",
+     "Construimos una app web funcional con: editor 2D con muros "
+     "(mitra robusta + snap + cota viva), motor IA con Claude que "
+     "genera planos JSON, render 3D inicial con react-three-fiber, "
+     "persistencia en Supabase con autoguardado."],
+    ["⚠️ Brecha",
+     "La IA genera planos pero su calidad es inconsistente. El "
+     "validador es débil. La exportación PDF no funciona aún. La "
+     "calidad arquitectónica del output no está medida."],
+    ["🎯 Próximo hito",
+     "MVP en 4 semanas: que un prompt genere un plano correcto + se "
+     "guarde + se exporte como PDF, en una demo en vivo de 10 minutos."],
+]
+story.append(tabla(contexto, col_widths=[2.5 * cm, 14.5 * cm]))
+
+story.append(P("Hoja de ruta condensada", "H2"))
+ruta = [
+    ["Fase", "Cuándo", "Qué incluye", "Usuarios objetivo"],
+    ["✅ Prototipo", "Hoy",
+     "Editor 2D + IA + 3D básico + persistencia",
+     "Equipo interno"],
+    ["🎯 <b>MVP</b>", "+1 mes",
+     "IA produce planos correctos consistentemente + exportar PDF + "
+     "demo en vivo",
+     "Equipo + 5 beta testers"],
+    ["v1.0", "+3 meses",
+     "Tool use refactor + export IFC + sun study básico",
+     "50 beta testers (estudiantes)"],
+    ["v1.5", "+6 meses",
+     "Walkthrough 3D + materiales PBR + section cuts + asoleamiento",
+     "500 usuarios"],
+    ["v2.0", "+12 meses",
+     "Agente conversacional iterativo + librería mobiliario + metrados",
+     "5,000 usuarios + freemium"],
+    ["v3.0", "+18 meses",
+     "Planos técnicos con cotas + integración Archicad MCP + colab "
+     "multi-user",
+     "Estudios pequeños pagantes"],
+]
+story.append(tabla(ruta, col_widths=[2.5 * cm, 2 * cm, 8 * cm, 4.5 * cm]))
+story.append(PageBreak())
+
+# ─── II · Visión estratégica ───
+story.append(P("II · Visión estratégica y diferenciación", "H1"))
+
+story.append(P("Posicionamiento", "H2"))
+story.append(P(
+    "<b>BIM ligero para estudiantes y arquitectos jóvenes de LATAM</b> — "
+    "la potencia conceptual de Archicad, en el navegador, con AI nativa, "
+    "hablando español, conociendo el RNE peruano, a un precio que un "
+    "estudiante puede pagar.", "Quote"))
+
+story.append(P("A quién atacamos", "H2"))
+si = [
+    ["Segmento", "Por qué los queremos"],
+    ["🎓 Estudiantes de arquitectura",
+     "No pueden pagar Archicad/Revit. Sus profesores les piden planos "
+     "técnicos. Hoy improvisan con SketchUp Free o piden prestadas "
+     "licencias."],
+    ["👷 Arquitectos jóvenes / independientes",
+     "Cobran proyectos pequeños donde una licencia BIM de $2,400/año no "
+     "se paga sola. Necesitan herramienta rápida y profesional."],
+    ["🏘️ Pequeños constructores / autoconstructores",
+     "Necesitan un plano que cumpla RNE para trámite municipal. Hoy "
+     "contratan un dibujante por cada plano."],
+    ["🏗️ Inmobiliarias chicas",
+     "Para mostrar a clientes posibles distribuciones rápidamente, "
+     "antes de involucrar arquitecto formal."],
+]
+story.append(tabla(si, col_widths=[5 * cm, 12 * cm]))
+
+story.append(P("A quién NO atacamos (al menos por ahora)", "H2"))
+no = [
+    ["Segmento", "Por qué los dejamos"],
+    ["Estudios grandes con Revit/Archicad",
+     "Mercado BIM enterprise. Ya tienen su flujo. Ganarles cuesta años "
+     "y millones."],
+    ["Renderistas hiperrealistas",
+     "Usan Blender + Cycles o V-Ray. Mejor exportamos GLB y se llevan "
+     "nuestro modelo a su workflow."],
+    ["Mercado anglosajón",
+     "Maket.ai domina USA/Canadá. Nuestra ventaja es LATAM + RNE + "
+     "español nativo."],
+]
+story.append(tabla(no, col_widths=[5 * cm, 12 * cm]))
+
+story.append(P("Los 5 puntos del moat (lo que nos defiende de copias)", "H2"))
+moat = [
+    ["#", "Diferenciador", "Por qué cuesta copiarnos"],
+    ["1", "🌐 <b>Browser-first</b>",
+     "Archicad/Revit son desktop pesado. Reescribirlos en navegador es "
+     "trabajo de años."],
+    ["2", "🤖 <b>AI-native con tool use</b>",
+     "Los grandes le ponen AI como add-on. Nosotros la diseñamos como "
+     "corazón del flujo desde día 1."],
+    ["3", "🇵🇪 <b>RNE Perú baked-in</b>",
+     "A Autodesk/Graphisoft no les importa el mercado latino. A "
+     "Maket.ai tampoco."],
+    ["4", "💵 <b>Freemium / accesible</b>",
+     "Modelo de negocio de los grandes son licencias caras. Canibalizar "
+     "ese modelo les cuesta."],
+    ["5", "🎨 <b>Render exportable sin instalar</b>",
+     "Walkthrough → MP4 directo en el navegador. SketchUp Web no llega "
+     "a esto, Lumion necesita máquina gamer."],
+]
+story.append(tabla(moat, col_widths=[0.8 * cm, 5 * cm, 11.2 * cm]))
+story.append(PageBreak())
+
+# ─── III · Análisis competitivo ───
+story.append(P("III · Análisis competitivo", "H1"))
+story.append(P(
+    "El panorama de programas que un usuario consideraría como "
+    "alternativa a MyARQIA, con costos reales 2026 y qué tienen / no "
+    "tienen:", "Body"))
+
+competencia = [
+    ["Producto", "Tipo", "Costo/año", "Browser", "AI gen.", "Plano pro", "RNE", "Target"],
+    ["Archicad", "BIM pro", "$2,400+", "❌", "🟡 MCP β", "🟢", "❌", "Arq pro"],
+    ["Revit", "BIM pro", "$2,800+", "❌", "🟡 Forma", "🟢", "❌", "Arq pro grandes"],
+    ["SketchUp Pro", "Modelado", "$350", "🟡 light", "❌", "🟡 LayOut", "❌", "Diseñadores"],
+    ["Blender + Bonsai", "OSS BIM", "$0", "❌", "❌", "🟢 (curva alta)", "❌", "Visualiz., OSS"],
+    ["Maket.ai", "AI plan", "$360", "🟢", "🟢", "🟡 básico", "❌", "Real estate USA"],
+    ["HomeByMe", "DIY", "$200", "🟢", "❌", "🟡 simple", "❌", "Aficionados"],
+    ["<b>🎯 MyARQIA</b>", "<b>AI BIM ligero</b>", "<b>$0–15/mes</b>", "🟢", "🟢", "🟢 v1.5", "🟢", "<b>Estud + arq LATAM</b>"],
+]
+story.append(tabla(competencia, col_widths=[2.7 * cm, 1.8 * cm, 1.8 * cm,
+                                            1 * cm, 1.2 * cm, 1.6 * cm,
+                                            0.8 * cm, 3.1 * cm]))
+
+story.append(P("Lectura rápida del mercado", "H2"))
+story.append(P(
+    "• <b>Los pesados (Archicad, Revit)</b> son potentes pero inaccesibles "
+    "para estudiantes y arquitectos jóvenes. La integración AI es "
+    "experimental.<br/>"
+    "• <b>SketchUp</b> es popular en estudiantes pero su flujo de planos "
+    "técnicos es flojo y no tiene AI.<br/>"
+    "• <b>Blender + Bonsai</b> es la opción libre, pero la curva de "
+    "aprendizaje es prohibitiva para arquitectos no-técnicos.<br/>"
+    "• <b>Maket.ai</b> es nuestro competidor más directo, pero solo "
+    "inglés y sin normas locales.<br/>"
+    "• <b>HomeByMe</b> es para aficionados, no produce planos "
+    "profesionales.", "Body"))
+
+story.append(P("Cómo se ve Claude funcionando dentro de Archicad (importante para v1.0)", "H2"))
+story.append(P(
+    "El MCP comunitario de Archicad expone funciones del programa "
+    "(crear muro, colocar puerta, modificar propiedades) como "
+    "<b>herramientas (tools)</b> que Claude puede llamar. El flujo es:",
+    "Body"))
+
+flujo = [
+    ["Paso", "Qué ocurre"],
+    ["1", "Usuario escribe: \"agrégame una puerta de 90cm en el muro norte de la sala\""],
+    ["2", "Claude analiza la frase y identifica intención + parámetros"],
+    ["3", "Claude llama a la herramienta: <font face='Courier'>archicad.createDoor(muroId, posicion, ancho)</font>"],
+    ["4", "Archicad ejecuta y actualiza el modelo"],
+    ["5", "El usuario ve el cambio en pantalla y puede revertirlo o continuar"],
+]
+story.append(tabla(flujo, col_widths=[1 * cm, 16 * cm]))
+
+story.append(P(
+    "<b>Esto NO es \"IA genera el plano completo de una vez\"</b> — es "
+    "\"IA usa las herramientas del programa una por una, como lo haría "
+    "un usuario humano\". Esto es lo que <b>MyARQIA debe adoptar como "
+    "arquitectura en v1.0</b>: la IA llama a "
+    "<font face='Courier'>terminarMuro</font>, "
+    "<font face='Courier'>terminarPuerta</font>, etc. Es más confiable, "
+    "transparente y debuggeable que generar JSON completo.", "Quote"))
+story.append(PageBreak())
+
+# ─── IV · Roadmap ───
+story.append(P("IV · Roadmap del producto", "H1"))
+story.append(P(
+    "Cada versión tiene un foco claro y un público objetivo. Las "
+    "features dentro de cada versión están priorizadas por impacto sobre "
+    "el moat de MyARQIA.", "Lead"))
+
+# v1.0
+story.append(P("v1.0 · Tool use + interop BIM (+3 meses post-MVP)", "H2"))
+story.append(P(
+    "Refactor fundacional. Pasamos de \"IA escupe JSON\" a \"IA llama "
+    "herramientas\". Habilita todo lo demás.", "Body"))
+v1_0 = [
+    ["Feature", "Por qué importa"],
+    ["🔧 <b>Tool use architecture</b> (Claude function calling)",
+     "La IA llama dibujarMuro, colocarPuerta, etc. una por una. Más "
+     "confiable, transparente, debuggeable. Base para todo el roadmap."],
+    ["📤 <b>Export IFC</b>",
+     "Estándar BIM abierto. El usuario puede abrir su plano en Archicad, "
+     "Revit, Blender, SketchUp. Interoperabilidad sin fricción."],
+    ["☀️ <b>Sun study básico</b>",
+     "Slider de hora/mes + geocoords. El RNE Perú exige análisis solar. "
+     "Ningún competidor LATAM gratis lo hace."],
+    ["📐 Cotas automáticas RNE",
+     "Al exportar PDF, los muros llevan sus cotas correctamente "
+     "formateadas según estilo RNE/ISO."],
+]
+story.append(tabla(v1_0, col_widths=[6 * cm, 11 * cm]))
+
+# v1.5
+story.append(P("v1.5 · Visualización pro (+6 meses)", "H2"))
+v1_5 = [
+    ["Feature", "Por qué importa"],
+    ["🎥 <b>Walkthrough animation</b>",
+     "Cámara primera persona + export MP4. Demo killer. Viralizable en "
+     "redes."],
+    ["🎨 <b>Materiales PBR + texturas</b>",
+     "muro pintado, ladrillo, drywall, piso cerámico, madera. Renders "
+     "calidad SketchUp Pro."],
+    ["✂️ <b>Section cuts</b> (cortes axonométricos)",
+     "Slider que mueve plano de corte. Convierte el 3D en documentación "
+     "técnica, no solo visualización."],
+    ["🪟 Librería de aberturas paramétricas",
+     "Puertas y ventanas de marcas reales con sus dimensiones "
+     "estándar (Furukawa, Vidrios LP, etc.)."],
+]
+story.append(tabla(v1_5, col_widths=[6 * cm, 11 * cm]))
+
+# v2.0
+story.append(P("v2.0 · Agente conversacional + mobiliario (+12 meses)", "H2"))
+v2_0 = [
+    ["Feature", "Por qué importa"],
+    ["💬 <b>Refinamiento iterativo</b>",
+     "\"haz la cocina más grande\", \"mueve el baño al otro lado\", "
+     "\"agrega un balcón\". La IA modifica sin regenerar todo."],
+    ["🛋️ <b>Librería de mobiliario</b>",
+     "Drag &amp; drop de camas, sofás, cocinas, baños. Cada mueble "
+     "respeta circulaciones mínimas RNE."],
+    ["📊 <b>Metrados básicos</b>",
+     "Cuánto m² de muro, cuántas puertas, cuántas ventanas. Para "
+     "presupuesto preliminar."],
+    ["🤝 <b>Freemium real</b>",
+     "Plan gratis con marca de agua + 3 proyectos. Plan Pro $9-15/mes "
+     "sin límites. Plan Estudio $29/mes con colaboración."],
+]
+story.append(tabla(v2_0, col_widths=[6 * cm, 11 * cm]))
+
+# v3.0
+story.append(P("v3.0 · Documentación técnica completa (+18 meses)", "H2"))
+v3_0 = [
+    ["Feature", "Por qué importa"],
+    ["📑 <b>Planos técnicos para obra</b>",
+     "Plano de planta + corte longitudinal + corte transversal + "
+     "elevaciones, todo con cotas, leyendas y membrete. Listo para "
+     "trámite municipal."],
+    ["🔌 <b>Integración Archicad MCP (bidireccional)</b>",
+     "Para usuarios pro que tienen Archicad: pueden seguir trabajando "
+     "el plano de MyARQIA en su BIM."],
+    ["👥 <b>Colaboración multi-user</b>",
+     "Tipo Figma: varios arquitectos en el mismo plano, edición en "
+     "tiempo real."],
+    ["🏢 <b>Multi-piso</b>",
+     "Edificios de varias plantas con escaleras integradas y planos "
+     "por nivel."],
+]
+story.append(tabla(v3_0, col_widths=[6 * cm, 11 * cm]))
+
+story.append(P("Lo que <i>nunca</i> intentaremos hacer", "H2"))
+nunca = [
+    "Render fotorealista offline al nivel de V-Ray/Lumion (los "
+    "exportamos a GLB para Blender).",
+    "Modelado de superficies orgánicas (no somos Blender).",
+    "Cálculo estructural (deja eso a SAP2000/Etabs).",
+    "Análisis energético profundo (deja eso a EnergyPlus/DesignBuilder).",
+    "BIM enterprise multi-disciplinario (MEP, HVAC complejo, etc.).",
+]
+for n in nunca:
+    story.append(P(f"• {n}", "Body"))
+story.append(P(
+    "<b>Quedarse enfocado es lo que nos hace defendibles.</b> Los grandes "
+    "intentan hacer todo y por eso son caros y complejos.", "Quote"))
+story.append(PageBreak())
+
+# ════════════════════════════════════════════════════════════════════
+# PARTE OPERATIVA (continúa el contenido original)
+# ════════════════════════════════════════════════════════════════════
 
 # ─── Sección 1: Visión del MVP ───
 story.append(P("1 · Visión del MVP", "H1"))
