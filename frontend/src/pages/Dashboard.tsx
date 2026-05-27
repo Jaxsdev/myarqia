@@ -112,7 +112,7 @@ export default function Dashboard() {
                     <button
                         onClick={crearProyecto}
                         disabled={creando}
-                        className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 px-6 py-2.5 rounded-xl font-semibold text-sm transition-colors flex items-center gap-2">
+                        className="bg-white text-black hover:bg-[var(--acc-soft)] disabled:bg-gray-700 disabled:text-gray-500 px-6 py-2.5 rounded-none font-semibold text-sm transition-colors flex items-center gap-2">
                         <span className="text-lg leading-none">+</span>
                         {creando ? 'Creando...' : 'Nuevo proyecto'}
                     </button>
@@ -137,7 +137,7 @@ export default function Dashboard() {
                         </p>
                         <button
                             onClick={crearProyecto}
-                            className="bg-blue-600 hover:bg-blue-500 px-8 py-3 rounded-xl font-semibold text-sm transition-colors">
+                            className="bg-white text-black hover:bg-[var(--acc-soft)] px-8 py-3 rounded-none font-semibold text-sm transition-colors">
                             Crear mi primer proyecto
                         </button>
                     </div>

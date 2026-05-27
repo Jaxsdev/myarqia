@@ -118,7 +118,7 @@ export default function ConfigModal() {
                 <div className="p-6 border-t border-slate-800 bg-slate-900/50 flex justify-end">
                     <button 
                         onClick={() => setModalConfigAbierto(false)}
-                        className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-blue-600/20 transition-all active:scale-95"
+                        className="px-6 py-2 bg-white hover:bg-[var(--acc-soft)] text-black text-sm font-semibold rounded-none transition-colors active:scale-95"
                     >
                         Guardar Cambios
                     </button>

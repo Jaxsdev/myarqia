@@ -237,18 +237,18 @@ export default function TopBar() {
     ]
 
     return (
-        <header className="topbar h-10 bg-[#141720] border-b border-[#252B3B] flex items-center px-2.5 gap-1.5 flex-shrink-0 z-10">
-            {/* Logo */}
+        <header className="topbar h-10 bg-[var(--bg1)] border-b border-[var(--bdr)] flex items-center px-2.5 gap-1.5 flex-shrink-0 z-10">
+            {/* Logo / wordmark */}
             <div
                 onClick={() => navigate('/dashboard')}
                 className="logo flex items-center cursor-pointer select-none mr-2"
             >
-                <span className="text-[14px] font-medium text-[#2D8EFF] tracking-tight">
-                    My<b className="text-[#00C8D4]">ARQIA</b>
+                <span className="brand-wordmark text-[13px]">
+                    MyARQIA
                 </span>
             </div>
 
-            <div className="w-[0.5px] h-4 bg-[#252B3B] mx-1" />
+            <div className="w-px h-4 bg-[var(--bdr)] mx-1" />
 
             {/* Menús de Navegación */}
             <nav className="flex items-center relative" ref={dropdownRef}>
@@ -256,17 +256,17 @@ export default function TopBar() {
                     <div key={item.label} className="relative">
                         <button
                             onClick={() => setMenuAbierto(menuAbierto === item.label ? null : item.label)}
-                            className={`tb-menu text-[11px] px-2 py-1 rounded-md transition-all border-none bg-transparent cursor-pointer flex items-center gap-1 mx-0.5 ${menuAbierto === item.label ? 'bg-[#252B3B] text-[#E8ECF0]' : 'text-[#8892A0] hover:bg-[#252B3B] hover:text-[#E8ECF0]'
+                            className={`tb-menu text-[11px] px-2 py-1 rounded-none transition-colors border-none bg-transparent cursor-pointer flex items-center gap-1 mx-0.5 ${menuAbierto === item.label ? 'bg-[var(--bg3)] text-[var(--txt)]' : 'text-[var(--mut)] hover:bg-[var(--bg3)] hover:text-[var(--txt)]'
                                 }`}
                         >
                             {item.label}
                         </button>
 
                         {menuAbierto === item.label && item.items && (
-                            <div className="absolute top-full left-0 mt-1 w-56 bg-[#1C2030] border border-[#252B3B] rounded-lg shadow-2xl py-1.5 z-50">
+                            <div className="absolute top-full left-0 mt-1 w-56 bg-[var(--bg2)] border border-[var(--bdr)] rounded-none shadow-2xl py-1 z-50">
                                 {item.items.map((subItem, idx) => {
                                     if (subItem.type === 'separator') {
-                                        return <div key={idx} className="h-[1px] bg-[#252B3B] my-1 mx-2" />
+                                        return <div key={idx} className="h-px bg-[var(--bdr)] my-1 mx-2" />
                                     }
                                     return (
                                         <button
@@ -275,17 +275,17 @@ export default function TopBar() {
                                                 subItem.action?.()
                                                 setMenuAbierto(null)
                                             }}
-                                            className={`w-full flex items-center justify-between px-3 py-1.5 text-[11px] hover:bg-[#2D8EFF20] transition-colors group ${subItem.active ? 'bg-[#2D8EFF15] text-[#2D8EFF]' : 'text-[#C8D0DC] hover:text-[#E8ECF0]'
+                                            className={`w-full flex items-center justify-between px-3 py-1.5 text-[11px] transition-colors group ${subItem.active ? 'bg-white text-black' : 'text-[var(--mut)] hover:text-[var(--txt)] hover:bg-[var(--bg3)]'
                                                 }`}
                                         >
                                             <div className="flex items-center gap-2">
-                                                <span className={`${subItem.active ? 'text-[#2D8EFF]' : 'text-[#8892A0] group-hover:text-[#2D8EFF]'}`}>
+                                                <span className={`${subItem.active ? 'text-black' : 'text-[var(--mut)] group-hover:text-[var(--txt)]'}`}>
                                                     {subItem.icon}
                                                 </span>
                                                 {subItem.label}
                                             </div>
                                             {subItem.shortcut && (
-                                                <span className="text-[9px] text-[#565F6E]">{subItem.shortcut}</span>
+                                                <span className={`text-[9px] ${subItem.active ? 'text-black/60' : 'text-[var(--faint)]'}`}>{subItem.shortcut}</span>
                                             )}
                                         </button>
                                     )
@@ -296,15 +296,15 @@ export default function TopBar() {
                 ))}
             </nav>
 
-            <div className="w-[0.5px] h-4 bg-[#252B3B] mx-1" />
+            <div className="w-px h-4 bg-[var(--bdr)] mx-1" />
 
             {/* Nombre del Proyecto y Estado */}
             <div className="flex items-center gap-1.5 ml-1">
                 <div
-                    className="file-name flex items-center gap-1.5 text-[11px] text-[#E8ECF0] bg-[#252B3B] border border-[#252B3B] rounded-md px-2 py-0.75 cursor-pointer hover:border-[#8892A0] transition-colors"
+                    className="file-name flex items-center gap-1.5 text-[11px] text-[var(--txt)] bg-[var(--bg2)] border border-[var(--bdr)] rounded-none px-2 py-1 cursor-pointer hover:border-[var(--bdr-strong)] transition-colors"
                     onClick={() => setEditandoNombre(true)}
                 >
-                    <IconFolder size={12} className="text-[#8892A0]" />
+                    <IconFolder size={12} className="text-[var(--mut)]" />
                     {editandoNombre ? (
                         <input
                             autoFocus
@@ -317,17 +317,17 @@ export default function TopBar() {
                     ) : (
                         <div className="flex items-center gap-1">
                             <span>{proyectoActual?.nombre || 'Proyecto sin título'}</span>
-                            <IconChevronDown size={10} className="text-[#8892A0]" />
+                            <IconChevronDown size={10} className="text-[var(--mut)]" />
                         </div>
                     )}
                 </div>
 
-                {/* Badge de Guardado */}
-                <div className={`flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded border ${guardando
-                        ? 'text-[#F39C12] bg-[#F39C1210] border-[#F39C1233]'
-                        : 'text-[#2ECC71] bg-[#2ECC7110] border-[#2ECC7133]'
+                {/* Badge de Guardado — monocromático (amber funcional solo al guardar) */}
+                <div className={`flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-none border ${guardando
+                        ? 'text-[var(--warn)] border-[var(--bdr-strong)]'
+                        : 'text-[var(--mut)] border-[var(--bdr)]'
                     }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${guardando ? 'bg-[#F39C12] animate-pulse' : 'bg-[#2ECC71]'}`} />
+                    <span className={`w-1.5 h-1.5 ${guardando ? 'bg-[var(--warn)] animate-pulse' : 'bg-[var(--mut)]'}`} />
                     {guardando ? 'Guardando...' : 'Guardado'}
                 </div>
             </div>
@@ -342,7 +342,7 @@ export default function TopBar() {
                         autoSanarPlano()
                         exportar()
                     }}
-                    className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-md border border-[#2D8EFF44] bg-[#2D8EFF18] text-[#2D8EFF] hover:bg-[#2D8EFF30] transition-all cursor-pointer"
+                    className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-none border border-[var(--bdr-strong)] bg-transparent text-[var(--txt)] hover:bg-[var(--bg3)] transition-colors cursor-pointer"
                 >
                     <IconFileText size={14} />
                     <span>PDF</span>
@@ -352,23 +352,23 @@ export default function TopBar() {
                     onClick={() => {
                         autoSanarPlano()
                         descargarDXF(
-                            muros, puertas, ventanas, escaleras, columnas, 
-                            cotas, textos, areas, ambientes, 
+                            muros, puertas, ventanas, escaleras, columnas,
+                            cotas, textos, areas, ambientes,
                             proyectoActual?.nombre || 'proyecto'
                         )
                     }}
-                    className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-md border border-[#00C8D444] bg-[#00C8D418] text-[#00C8D4] hover:bg-[#00C8D430] transition-all cursor-pointer"
+                    className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-none border border-[var(--bdr-strong)] bg-transparent text-[var(--txt)] hover:bg-[var(--bg3)] transition-colors cursor-pointer"
                 >
                     <IconDownload size={14} />
                     <span>DXF</span>
                 </button>
 
-                <button className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-md bg-[#2D8EFF] text-white border border-[#2D8EFF] hover:opacity-90 transition-all cursor-pointer">
+                <button className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-none bg-white text-black border border-white hover:bg-[var(--acc-soft)] transition-colors cursor-pointer">
                     <IconShare size={14} />
                     <span>Compartir</span>
                 </button>
 
-                <div className="w-6.5 h-6.5 rounded-full bg-[#2D8EFF30] border border-[#2D8EFF] flex items-center justify-center text-[10px] font-medium text-[#2D8EFF] cursor-pointer hover:bg-[#2D8EFF40] transition-all ml-1">
+                <div className="w-6.5 h-6.5 rounded-none bg-[var(--bg3)] border border-[var(--bdr-strong)] flex items-center justify-center text-[10px] font-semibold text-[var(--txt)] cursor-pointer hover:bg-[var(--bdr-strong)] transition-colors ml-1">
                     JD
                 </div>
             </div>

@@ -85,18 +85,13 @@ export default function ToolsSidebar() {
     }
 
     return (
-        <aside className="w-[40px] bg-gray-900/95 border-r border-gray-800 flex flex-col items-center py-3 gap-1 flex-shrink-0 z-20 backdrop-blur-md">
+        <aside className="w-[42px] bg-[var(--bg1)] border-r border-[var(--bdr)] flex flex-col items-center py-3 gap-1 flex-shrink-0 z-20">
             {TOOLS_CONFIG.map((group, gIdx) => (
-                <div key={group.group} className="flex flex-col items-center w-full gap-1.5">
+                <div key={group.group} className="flex flex-col items-center w-full gap-1">
                     {group.tools.map((tool) => {
                         const Icon = ICON_MAP[tool.id] || IconSettings
                         const active = isToolActive(tool)
                         const isToggle = tool.toggle
-                        
-                        // Color logic
-                        let activeClass = 'bg-blue-600/20 text-blue-400'
-                        if (tool.id === 'snap' && active) activeClass = 'bg-green-500/20 text-green-400'
-                        if (tool.id === 'ortho' && active) activeClass = 'bg-orange-500/20 text-orange-400'
 
                         return (
                             <button
@@ -104,33 +99,33 @@ export default function ToolsSidebar() {
                                 onClick={() => handleToolClick(tool)}
                                 title={`${tool.label} ${tool.key ? `[${tool.key.toUpperCase()}]` : ''}`}
                                 className={`
-                                    w-[30px] h-[30px] flex items-center justify-center rounded-lg 
-                                    transition-all duration-200 relative cursor-pointer border border-transparent
-                                    ${active 
-                                        ? `${activeClass} border-current/20 shadow-sm` 
-                                        : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'
+                                    w-[30px] h-[30px] flex items-center justify-center rounded-none
+                                    transition-colors duration-150 relative cursor-pointer border
+                                    ${active
+                                        ? 'bg-white text-black border-white'
+                                        : 'text-[var(--mut)] border-transparent hover:text-white hover:bg-[var(--bg3)]'
                                     }
                                 `}
                                 style={{ cursor: tool.cursor }}
                             >
-                                <Icon size={18} stroke={1.5} />
-                                
-                                {/* Active indicator dot for toggles */}
+                                <Icon size={17} stroke={1.75} />
+
+                                {/* Indicador de toggle activo — punto blanco */}
                                 {isToggle && active && (
-                                    <span className={`absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full ${tool.id === 'snap' ? 'bg-green-500' : 'bg-orange-500'}`}></span>
+                                    <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-black"></span>
                                 )}
 
-                                {/* Subtle left border for active drawing tool */}
+                                {/* Barra izquierda para herramienta de dibujo activa */}
                                 {!isToggle && active && tool.id !== 'config' && (
-                                    <span className="absolute left-[-4px] top-1/2 -translate-y-1/2 w-1 h-4 bg-blue-500 rounded-r-full"></span>
+                                    <span className="absolute left-[-3px] top-1/2 -translate-y-1/2 w-[3px] h-4 bg-white"></span>
                                 )}
                             </button>
                         )
                     })}
 
-                    {/* Divider */}
+                    {/* Divisor */}
                     {gIdx < TOOLS_CONFIG.length - 1 && (
-                        <div className="w-[24px] h-px bg-gray-800/50 my-1" />
+                        <div className="w-[22px] h-px bg-[var(--bdr)] my-1.5" />
                     )}
                 </div>
             ))}

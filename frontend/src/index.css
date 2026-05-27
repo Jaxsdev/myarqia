@@ -1,65 +1,172 @@
 @import "tailwindcss";
 
+/* ────────────────────────────────────────────────────────────────
+   REMAPEO GLOBAL DE TOKENS TAILWIND → MONOCROMÁTICO
+   Recolorea de un golpe todos los componentes que usan las clases
+   estándar (bg-gray-*, bg-blue-*, rounded-*) sin editar cada archivo.
+   Azul/morado/índigo → escala de grises/blanco. Radios → casi rectos.
+   ──────────────────────────────────────────────────────────────── */
+@theme {
+  /* Grises → neutros puros */
+  --color-gray-950: #0a0a0a;
+  --color-gray-900: #111111;
+  --color-gray-850: #161616;
+  --color-gray-800: #181818;
+  --color-gray-750: #1f1f1f;
+  --color-gray-700: #2a2a2a;
+  --color-gray-600: #3a3a3a;
+  --color-gray-500: #8c8c8c;
+  --color-gray-400: #a3a3a3;
+  --color-gray-300: #d4d4d4;
+  --color-gray-200: #e5e5e5;
+  --color-gray-100: #f5f5f5;
+
+  /* Azul → monocromático (acentos se vuelven blanco/gris) */
+  --color-blue-700: #d4d4d4;
+  --color-blue-600: #ffffff;
+  --color-blue-500: #d4d4d4;
+  --color-blue-400: #f5f5f5;
+  --color-blue-300: #f5f5f5;
+
+  /* Morado / índigo / violeta → monocromático */
+  --color-purple-600: #ffffff;
+  --color-purple-500: #d4d4d4;
+  --color-purple-400: #f5f5f5;
+  --color-indigo-600: #ffffff;
+  --color-indigo-500: #d4d4d4;
+  --color-indigo-400: #f5f5f5;
+  --color-violet-600: #ffffff;
+  --color-violet-500: #d4d4d4;
+  --color-violet-400: #f5f5f5;
+
+  /* Slate (mismo trato que gray) */
+  --color-slate-950: #0a0a0a;
+  --color-slate-900: #111111;
+  --color-slate-800: #181818;
+  --color-slate-700: #2a2a2a;
+  --color-slate-600: #3a3a3a;
+  --color-slate-500: #8c8c8c;
+  --color-slate-400: #a3a3a3;
+  --color-slate-300: #d4d4d4;
+  --color-slate-200: #e5e5e5;
+
+  /* Verde/cian/teal decorativos → gris (solo dejamos rojo/amber funcionales) */
+  --color-green-900: #1f1f1f;
+  --color-green-500: #a3a3a3;
+  --color-green-400: #d4d4d4;
+  --color-green-300: #e5e5e5;
+  --color-emerald-900: #1f1f1f;
+  --color-emerald-500: #a3a3a3;
+  --color-emerald-400: #d4d4d4;
+  --color-teal-500: #a3a3a3;
+  --color-teal-400: #d4d4d4;
+  --color-cyan-500: #a3a3a3;
+  --color-cyan-400: #d4d4d4;
+
+  /* Radios → casi rectos (mata el look "rounded-xl") */
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-xl: 3px;
+  --radius-2xl: 3px;
+  --radius-3xl: 4px;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   SISTEMA DE DISEÑO — "Monocromático Editorial"
+   Blanco y negro elegante. Sin azul, sin morado, sin blur decorativo.
+   Esquinas rectas. Acento = inversión (blanco sobre negro).
+   ──────────────────────────────────────────────────────────────── */
 :root {
-  --bg0: #0D0F14;
-  --bg1: #141720;
-  --bg2: #1C2030;
-  --bg3: #252B3B;
-  --acc: #2D8EFF;
-  --cyn: #00C8D4;
-  --grn: #2ECC71;
-  --org: #F39C12;
-  --red: #E74C3C;
-  --txt: #E8ECF0;
-  --mut: #8892A0;
-  --bdr: #252B3B;
+  /* Superficies (de más profundo a más elevado) */
+  --bg0: #0a0a0a;   /* fondo de app */
+  --bg1: #111111;   /* paneles */
+  --bg2: #181818;   /* inputs, tarjetas */
+  --bg3: #232323;   /* hover, elementos elevados */
+
+  /* Bordes hairline */
+  --bdr: #2a2a2a;
+  --bdr-strong: #3a3a3a;
+
+  /* Texto */
+  --txt: #f5f5f5;   /* principal */
+  --mut: #8c8c8c;   /* secundario */
+  --faint: #5a5a5a; /* terciario / placeholder */
+
+  /* Acento monocromático (inversión) */
+  --acc: #ffffff;
+  --acc-soft: #e5e5e5;
+
+  /* Semánticos — usados SOLO para significado funcional, nunca decoración */
+  --danger: #e0524b;
+  --warn: #d9a441;
+
+  /* Tipografía */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
 }
 
 body {
   background-color: var(--bg0);
   color: var(--txt);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.01em;
 }
 
-/* Custom Scrollbar */
+/* Scrollbar minimalista y recto */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--bg3);
-  border-radius: 4px;
+  background: var(--bdr-strong);
+  border-radius: 0;          /* recto */
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--mut);
 }
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--bg3) transparent;
+  scrollbar-color: var(--bdr-strong) transparent;
 }
 
-/* Viewport Overlays */
+/* ── Wordmark de marca (reemplaza el emoji 🏗️) ── */
+.brand-wordmark {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--txt);
+}
+.brand-wordmark .accent {
+  color: var(--mut);
+  font-weight: 400;
+}
+
+/* ── Overlays del viewport ── */
 .snap-banner {
   position: absolute;
   top: 12px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(45, 142, 255, 0.1);
-  border: 1px solid rgba(45, 142, 255, 0.2);
-  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--bdr-strong);
+  border-radius: 0;
   padding: 4px 12px;
   font-size: 10px;
-  color: var(--acc);
-  backdrop-filter: blur(8px);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--acc-soft);
   pointer-events: none;
   z-index: 20;
   display: flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .viewcube-container {
@@ -70,11 +177,10 @@ body {
   height: 64px;
   z-index: 20;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: transform 0.15s ease;
 }
-
 .viewcube-container:hover {
-  transform: scale(1.05);
+  transform: scale(1.04);
 }
 
 .north-rose {
@@ -100,30 +206,25 @@ body {
 .scale-bar-line {
   width: 80px;
   height: 2px;
-  background: var(--acc);
+  background: var(--acc-soft);
   position: relative;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
-
 .scale-bar-line::before,
 .scale-bar-line::after {
   content: '';
   position: absolute;
   top: -4px;
-  width: 2px;
+  width: 1px;
   height: 10px;
-  background: var(--acc);
+  background: var(--acc-soft);
 }
-
-.scale-bar-line::after {
-  right: 0;
-}
+.scale-bar-line::after { right: 0; }
 
 .scale-text {
   font-size: 9px;
   color: var(--mut);
-  font-family: 'JetBrains Mono', monospace;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
 }
 
 .mini-tools {
@@ -132,33 +233,29 @@ body {
   left: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   z-index: 20;
 }
 
 .mini-btn {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
-  background: rgba(28, 32, 48, 0.8);
+  border-radius: 0;          /* recto */
+  background: var(--bg2);
   border: 1px solid var(--bdr);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   color: var(--mut);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(4px);
+  transition: all 0.15s ease;
 }
-
 .mini-btn:hover {
   background: var(--bg3);
   color: var(--txt);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  border-color: var(--acc);
+  border-color: var(--bdr-strong);
 }
-
 .mini-btn:active {
-  transform: translateY(0);
-}
+  background: var(--acc);
+  color: var(--bg0);
+}

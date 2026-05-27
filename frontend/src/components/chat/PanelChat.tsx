@@ -330,7 +330,7 @@ export default function PanelChat() {
                         <div className={`
               max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed
               ${m.rol === 'usuario'
-                                ? 'bg-blue-600 text-white rounded-br-sm'
+                                ? 'bg-white text-black rounded-br-sm'
                                 : 'bg-gray-800 text-gray-200 rounded-bl-sm'}
             `}>
                             {m.rol === 'ia' && (
@@ -377,7 +377,7 @@ export default function PanelChat() {
                     <button
                         onClick={enviar}
                         disabled={cargando || !input.trim()}
-                        className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-600 text-white px-3 rounded-xl transition-colors self-end pb-2">
+                        className="bg-white hover:bg-[var(--acc-soft)] disabled:bg-gray-700 disabled:text-gray-600 text-black px-3 rounded-none transition-colors self-end pb-2">
                         ↑
                     </button>
                 </div>

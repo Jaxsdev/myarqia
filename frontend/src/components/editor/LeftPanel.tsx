@@ -256,7 +256,7 @@ export default function LeftPanel() {
                                         </div>
                                     </div>
                                     <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <span className="text-[9px] bg-blue-600 text-white px-2 py-0.5 rounded font-bold uppercase tracking-tighter">Volver</span>
+                                        <span className="text-[9px] bg-white text-black px-2 py-0.5 rounded-none font-bold uppercase tracking-tighter">Volver</span>
                                     </div>
                                 </div>
                             ))

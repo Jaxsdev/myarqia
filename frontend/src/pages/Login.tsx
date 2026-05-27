@@ -87,7 +87,7 @@ export default function Login() {
                             {(['login', 'registro'] as const).map((m) => (
                                 <button key={m} onClick={() => setModo(m)}
                                     className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors
-                    ${modo === m ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+                    ${modo === m ? 'bg-white text-black' : 'text-gray-400 hover:text-white'}`}>
                                     {m === 'login' ? 'Ingresar' : 'Registrarse'}
                                 </button>
                             ))}
@@ -129,7 +129,7 @@ export default function Login() {
 
                         <button onClick={handleSubmit}
                             disabled={loading || !email || !password}
-                            className="mt-6 w-full bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white py-3 rounded-xl font-semibold text-sm transition-colors">
+                            className="mt-6 w-full bg-white hover:bg-[var(--acc-soft)] disabled:bg-gray-700 disabled:text-gray-500 text-black py-3 rounded-none font-semibold text-sm transition-colors">
                             {loading ? 'Cargando...' : modo === 'login' ? 'Ingresar a MyARQIA' : 'Crear cuenta gratis'}
                         </button>
                     </div>

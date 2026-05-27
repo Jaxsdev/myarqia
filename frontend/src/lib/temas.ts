@@ -1,6 +1,8 @@
-// Paleta de colores para el editor según el modo visual
-// Modo claro → estilo plano arquitectónico profesional (fondo crema, muros negros)
-// Modo oscuro → fondo azul oscuro, muros claros, puertas/ventanas con color
+// Paleta del editor — Monocromático Editorial.
+// Modo oscuro → fondo casi negro, muros y líneas en blanco/gris (estilo blueprint invertido).
+// Modo claro → papel técnico, muros negros.
+// Sin azul ni morado: puertas/ventanas se diferencian por TONO de gris y patrón de línea,
+// como en un plano arquitectónico real. El rojo se reserva solo para cotas.
 
 export interface Tema {
     // Canvas
@@ -29,39 +31,39 @@ export interface Tema {
 }
 
 export const TEMA_CLARO: Tema = {
-    fondoCanvas: '#f5f0e8',       // crema arquitectónico
-    gridSub: '#d4cabb',           // subdivisiones muy suaves
-    gridMain: '#b8aa97',          // metro principal, sutil
+    fondoCanvas: '#fafafa',       // papel técnico, casi blanco
+    gridSub: '#e4e4e4',           // subdivisiones muy suaves
+    gridMain: '#cccccc',          // metro principal, sutil
 
-    muroRelleno: 'transparent',   // Transparente para estilo CAD
-    muroBorde: '#1a1a1a',
+    muroRelleno: 'transparent',   // estilo CAD (solo contorno)
+    muroBorde: '#0a0a0a',         // muros negros
 
-    puerta: '#f97316',            // naranja
-    puertaSeleccionada: '#ea580c',
+    puerta: '#404040',            // gris oscuro
+    puertaSeleccionada: '#0a0a0a',// negro al seleccionar
 
-    ventana: '#fbbf24',           // amarillo
-    ventanaSeleccionada: '#f59e0b',
+    ventana: '#737373',           // gris medio
+    ventanaSeleccionada: '#0a0a0a',
 
-    cotaLinea: '#cc0000',
-    cotaTexto: '#cc0000',
-    cotaTextoBg: '#f5f0e8',
+    cotaLinea: '#b91c1c',         // rojo técnico (único color funcional)
+    cotaTexto: '#b91c1c',
+    cotaTextoBg: '#fafafa',
 }
 
 export const TEMA_OSCURO: Tema = {
-    fondoCanvas: '#0f172a',       // azul muy oscuro
-    gridSub: '#1f2937',
-    gridMain: '#374151',
+    fondoCanvas: '#0a0a0a',       // negro de app
+    gridSub: '#1c1c1c',
+    gridMain: '#2e2e2e',
 
-    muroRelleno: 'transparent',   // Transparente para estilo CAD
-    muroBorde: '#f1f5f9',         // Blanco/Gris muy claro para líneas CAD
+    muroRelleno: 'transparent',   // estilo CAD
+    muroBorde: '#f5f5f5',         // muros blancos (blueprint invertido)
 
-    puerta: '#f97316',            // naranja
-    puertaSeleccionada: '#ea580c',
+    puerta: '#bdbdbd',            // gris claro
+    puertaSeleccionada: '#ffffff',// blanco puro al seleccionar
 
-    ventana: '#fbbf24',           // amarillo
-    ventanaSeleccionada: '#f59e0b',
+    ventana: '#8c8c8c',           // gris medio
+    ventanaSeleccionada: '#ffffff',
 
-    cotaLinea: '#ef4444',
-    cotaTexto: '#ef4444',
-    cotaTextoBg: '#0d1117',
+    cotaLinea: '#ef5350',         // rojo (único color funcional)
+    cotaTexto: '#ef5350',
+    cotaTextoBg: '#0a0a0a',
 }

@@ -98,7 +98,7 @@ export default function ContextBar() {
                                     <button
                                         key={a}
                                         onClick={() => setPropiedadMuro({ alineacion: a })}
-                                        className={`px-2 py-0.5 rounded text-[10px] transition-colors ${propiedades.muro.alineacion === a ? 'bg-blue-600 text-white' : 'hover:bg-gray-700 text-gray-500'}`}
+                                        className={`px-2 py-0.5 rounded text-[10px] transition-colors ${propiedades.muro.alineacion === a ? 'bg-white text-black' : 'hover:bg-gray-700 text-gray-500'}`}
                                     >
                                         {a.charAt(0).toUpperCase()}
                                     </button>
@@ -427,7 +427,7 @@ export default function ContextBar() {
                                     <button
                                         key={m}
                                         onClick={() => setPropiedadSelect({ modo: m })}
-                                        className={`px-2 py-0.5 rounded text-[10px] transition-colors ${propiedades.select.modo === m ? 'bg-blue-600 text-white' : 'hover:bg-gray-700 text-gray-500'}`}
+                                        className={`px-2 py-0.5 rounded text-[10px] transition-colors ${propiedades.select.modo === m ? 'bg-white text-black' : 'hover:bg-gray-700 text-gray-500'}`}
                                     >
                                         {m.charAt(0).toUpperCase()}
                                     </button>
