@@ -63,9 +63,8 @@ cd myarqia
     ```
 3.  Crea un archivo `.env.local` en la raíz de la carpeta `frontend` y añade las credenciales de Supabase del equipo:
     ```env
-    VITE_SUPABASE_URL=https://cpapnhdtsifblkpbfxwl.supabase.co
-    VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwYXBuaGR0c2lmYmxrcGJmeHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNjYwNjcsImV4cCI6MjA5MzY0MjA2N30.nfOP378hF0Q1y9HPpS3Bcug0wpP5Mv5pzVaHi4kSiEU
-    ```
+    VITE_SUPABASE_URL= XXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    VITE_SUPABASE_ANON_KEY=  XXXXXXXXXXXXXXXXXXXXXX
 
 ### 🔐 Cuenta de Prueba (Equipo)
 Si no deseas crear una cuenta nueva durante el desarrollo, puedes usar la siguiente cuenta de prueba (reemplazar con los datos reales):
